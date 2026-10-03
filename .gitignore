@@ -1,0 +1,30 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Java / Gradle
+.gradle/
+build/
+*.class
+
+# Node
+node_modules/
+dist/
+
+# Local application data
+Cerclay-Backend/uploads/*
+!Cerclay-Backend/uploads/products/
+!Cerclay-Backend/uploads/returns/
+Cerclay-Backend/uploads/products/*
+Cerclay-Backend/uploads/returns/*
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

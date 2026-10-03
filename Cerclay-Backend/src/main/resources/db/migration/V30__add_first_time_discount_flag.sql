@@ -1,0 +1,1 @@
+ALTER TABLE discounts ADD COLUMN first_time_only BOOLEAN NOT NULL DEFAULT FALSE;

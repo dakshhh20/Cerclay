@@ -1,0 +1,6 @@
+Cart fix applied:
+- Cart endpoints no longer serialize JPA Cart/Product entities directly.
+- Responses use DTOs so lazy Product.images cannot throw LazyInitializationException during JSON serialization.
+- Cart product image data is included in the response and uses the primary image first.
+- Customer API normalizes image URLs in cart responses to the backend origin.
+- Existing database, product records, uploads, and credentials are untouched.

@@ -1,0 +1,6 @@
+INSERT INTO notification_templates(event_type, enabled, subject_template, body_template, updated_at) VALUES
+('RETURN_REQUESTED', TRUE, 'Cerclay return request received for {{orderNumber}}', 'Hi {{customerName}},\n\nWe received your return request for order {{orderNumber}}.\nWe will review it and update you on the next step.\n\nCerclay', NOW()),
+('RETURN_APPROVED', TRUE, 'Cerclay return approved for {{orderNumber}}', 'Hi {{customerName}},\n\nYour return request for order {{orderNumber}} has been approved.\nPlease follow the return instructions provided by Cerclay.\n\nCerclay', NOW()),
+('RETURN_REJECTED', TRUE, 'Cerclay return update for {{orderNumber}}', 'Hi {{customerName}},\n\nYour return request for order {{orderNumber}} was not approved.\nPlease contact Cerclay support if you need clarification.\n\nCerclay', NOW()),
+('RETURN_RECEIVED', TRUE, 'Cerclay received your return for {{orderNumber}}', 'Hi {{customerName}},\n\nWe received the returned items for order {{orderNumber}}.\nThe applicable refund process will now continue.\n\nCerclay', NOW()),
+('REFUND_PROCESSED', TRUE, 'Cerclay refund processed for {{orderNumber}}', 'Hi {{customerName}},\n\nYour refund for order {{orderNumber}} has been processed.\nPlease allow the payment provider/bank time to credit the original payment method.\n\nCerclay', NOW());
