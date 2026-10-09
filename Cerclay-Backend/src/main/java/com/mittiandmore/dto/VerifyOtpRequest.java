@@ -15,14 +15,10 @@ public class VerifyOtpRequest {
     private String purpose;
 
     @NotBlank(message = "OTP is required")
-    @Pattern(
-            regexp = "\\d{6}",
-            message = "OTP must be a 6-digit number"
-    )
+    @Pattern(regexp = "\\d{6}", message = "OTP must be a 6-digit number")
     private String otp;
 
-    public VerifyOtpRequest() {
-    }
+    public VerifyOtpRequest() {}
 
     public String getDestination() {
         return destination;

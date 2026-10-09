@@ -5,11 +5,10 @@ import com.mittiandmore.dto.CustomerUpdateRequest;
 import com.mittiandmore.dto.RegisterRequest;
 import com.mittiandmore.entity.Customer;
 import com.mittiandmore.repository.CustomerRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Objects;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Service
 public class CustomerService {
@@ -17,10 +16,7 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public CustomerService(
-            CustomerRepository customerRepository,
-            PasswordEncoder passwordEncoder) {
-
+    public CustomerService(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -32,11 +28,7 @@ public class CustomerService {
      * Customer entities directly.
      */
     public List<CustomerResponse> getAllCustomerResponses() {
-
-        return customerRepository.findAll()
-                .stream()
-                .map(CustomerResponse::fromEntity)
-                .toList();
+        return customerRepository.findAll().stream().map(CustomerResponse::fromEntity).toList();
     }
 
     /*
@@ -46,22 +38,20 @@ public class CustomerService {
      * Customer entity is required.
      */
     public Customer getCustomerById(Long id) {
-
-        return customerRepository.findById(id)
-                .orElse(null);
+        return customerRepository.findById(id).orElse(null);
     }
 
     /*
      * Convert Customer entity to a safe API response.
      */
     public CustomerResponse toResponse(Customer customer) {
-
         return CustomerResponse.fromEntity(customer);
     }
 
     public CustomerResponse setActive(Long id, boolean active) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
+        Customer customer = customerRepository
+            .findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         customer.setActive(active);
         return CustomerResponse.fromEntity(customerRepository.save(customer));
     }
@@ -73,23 +63,12 @@ public class CustomerService {
      * authentication/registration flow.
      */
     public Customer registerCustomer(RegisterRequest request) {
-
-        if (customerRepository
-                .findByEmail(request.getEmail())
-                .isPresent()) {
-
-            throw new RuntimeException(
-                    "Email already registered"
-            );
+        if (customerRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already registered");
         }
 
-        if (customerRepository
-                .findByPhone(request.getPhone())
-                .isPresent()) {
-
-            throw new RuntimeException(
-                    "Phone number already registered"
-            );
+        if (customerRepository.findByPhone(request.getPhone()).isPresent()) {
+            throw new RuntimeException("Phone number already registered");
         }
 
         Customer customer = new Customer();
@@ -98,11 +77,7 @@ public class CustomerService {
         customer.setEmail(request.getEmail());
         customer.setPhone(request.getPhone());
 
-        customer.setPassword(
-                passwordEncoder.encode(
-                        request.getPassword()
-                )
-        );
+        customer.setPassword(passwordEncoder.encode(request.getPassword()));
 
         customer.setActive(true);
 
@@ -115,13 +90,8 @@ public class CustomerService {
      * Only fields explicitly allowed by
      * CustomerUpdateRequest can be changed.
      */
-    public Customer updateCustomer(
-            Long id,
-            CustomerUpdateRequest request) {
-
-        Customer existingCustomer =
-                customerRepository.findById(id)
-                        .orElse(null);
+    public Customer updateCustomer(Long id, CustomerUpdateRequest request) {
+        Customer existingCustomer = customerRepository.findById(id).orElse(null);
 
         if (existingCustomer == null) {
             return null;
@@ -131,58 +101,34 @@ public class CustomerService {
          * Check whether the new email is already
          * being used by another customer.
          */
-        customerRepository
-                .findByEmail(request.getEmail())
-                .ifPresent(customer -> {
-
-                    if (!customer.getId().equals(id)) {
-                        throw new RuntimeException(
-                                "Email already registered"
-                        );
-                    }
-                });
+        customerRepository.findByEmail(request.getEmail()).ifPresent(customer -> {
+            if (!customer.getId().equals(id)) {
+                throw new RuntimeException("Email already registered");
+            }
+        });
 
         /*
          * Check whether the new phone number is
          * already being used by another customer.
          */
-        customerRepository
-                .findByPhone(request.getPhone())
-                .ifPresent(customer -> {
-
-                    if (!customer.getId().equals(id)) {
-                        throw new RuntimeException(
-                                "Phone number already registered"
-                        );
-                    }
-                });
+        customerRepository.findByPhone(request.getPhone()).ifPresent(customer -> {
+            if (!customer.getId().equals(id)) {
+                throw new RuntimeException("Phone number already registered");
+            }
+        });
 
         /*
          * Detect contact information changes.
          */
-        boolean emailChanged =
-                !Objects.equals(
-                        existingCustomer.getEmail(),
-                        request.getEmail()
-                );
+        boolean emailChanged = !Objects.equals(existingCustomer.getEmail(), request.getEmail());
 
-        boolean phoneChanged =
-                !Objects.equals(
-                        existingCustomer.getPhone(),
-                        request.getPhone()
-                );
+        boolean phoneChanged = !Objects.equals(existingCustomer.getPhone(), request.getPhone());
 
-        existingCustomer.setName(
-                request.getName()
-        );
+        existingCustomer.setName(request.getName());
 
-        existingCustomer.setEmail(
-                request.getEmail()
-        );
+        existingCustomer.setEmail(request.getEmail());
 
-        existingCustomer.setPhone(
-                request.getPhone()
-        );
+        existingCustomer.setPhone(request.getPhone());
 
         /*
          * A changed email must be verified again.

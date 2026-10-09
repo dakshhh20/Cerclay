@@ -11,10 +11,7 @@ public class AddressRequest {
     private String name;
 
     @NotBlank(message = "Phone is required")
-    @Pattern(
-            regexp = "^[0-9]{10}$",
-            message = "Phone must be exactly 10 digits"
-    )
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be exactly 10 digits")
     private String phone;
 
     @NotBlank(message = "House/address is required")
@@ -34,10 +31,7 @@ public class AddressRequest {
     private String state;
 
     @NotBlank(message = "PIN code is required")
-    @Pattern(
-            regexp = "^[0-9]{6}$",
-            message = "PIN code must be exactly 6 digits"
-    )
+    @Pattern(regexp = "^[0-9]{6}$", message = "PIN code must be exactly 6 digits")
     private String pincode;
 
     @NotBlank(message = "Address type is required")
@@ -46,8 +40,7 @@ public class AddressRequest {
 
     private Boolean defaultAddress = false;
 
-    public AddressRequest() {
-    }
+    public AddressRequest() {}
 
     public String getName() {
         return name;

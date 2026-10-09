@@ -1,14 +1,16 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "inventory_adjustments", indexes = {
+@Table(
+    name = "inventory_adjustments",
+    indexes = {
         @Index(name = "idx_inventory_adjustments_product", columnList = "product_id"),
-        @Index(name = "idx_inventory_adjustments_created", columnList = "created_at")
-})
+        @Index(name = "idx_inventory_adjustments_created", columnList = "created_at"),
+    }
+)
 public class InventoryAdjustment {
 
     @Id
@@ -45,20 +47,67 @@ public class InventoryAdjustment {
         createdAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
-    public Integer getPreviousStock() { return previousStock; }
-    public void setPreviousStock(Integer previousStock) { this.previousStock = previousStock; }
-    public Integer getNewStock() { return newStock; }
-    public void setNewStock(Integer newStock) { this.newStock = newStock; }
-    public Integer getChangeQuantity() { return changeQuantity; }
-    public void setChangeQuantity(Integer changeQuantity) { this.changeQuantity = changeQuantity; }
-    public String getChangeType() { return changeType; }
-    public void setChangeType(String changeType) { this.changeType = changeType; }
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
-    public String getActor() { return actor; }
-    public void setActor(String actor) { this.actor = actor; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public Integer getPreviousStock() {
+        return previousStock;
+    }
+
+    public void setPreviousStock(Integer previousStock) {
+        this.previousStock = previousStock;
+    }
+
+    public Integer getNewStock() {
+        return newStock;
+    }
+
+    public void setNewStock(Integer newStock) {
+        this.newStock = newStock;
+    }
+
+    public Integer getChangeQuantity() {
+        return changeQuantity;
+    }
+
+    public void setChangeQuantity(Integer changeQuantity) {
+        this.changeQuantity = changeQuantity;
+    }
+
+    public String getChangeType() {
+        return changeType;
+    }
+
+    public void setChangeType(String changeType) {
+        this.changeType = changeType;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public String getActor() {
+        return actor;
+    }
+
+    public void setActor(String actor) {
+        this.actor = actor;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

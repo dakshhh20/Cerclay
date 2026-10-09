@@ -1,31 +1,33 @@
 package com.mittiandmore.notification;
 
 import com.mittiandmore.entity.Order;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.PageRequest;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Map;
 
 @Service
 public class NotificationService {
+
     private final NotificationRepository notificationRepository;
     private final NotificationTemplateRepository templateRepository;
     private final JavaMailSender mailSender;
     private final String fromAddress;
     private final boolean mailEnabled;
 
-    public NotificationService(NotificationRepository notificationRepository,
-                               NotificationTemplateRepository templateRepository,
-                               JavaMailSender mailSender,
-                               @Value("${app.notifications.mail-enabled:false}") boolean mailEnabled,
-                               @Value("${app.notifications.from:}") String fromAddress) {
+    public NotificationService(
+        NotificationRepository notificationRepository,
+        NotificationTemplateRepository templateRepository,
+        JavaMailSender mailSender,
+        @Value("${app.notifications.mail-enabled:false}") boolean mailEnabled,
+        @Value("${app.notifications.from:}") String fromAddress
+    ) {
         this.notificationRepository = notificationRepository;
         this.templateRepository = templateRepository;
         this.mailSender = mailSender;
@@ -35,18 +37,23 @@ public class NotificationService {
 
     @Transactional
     public void enqueue(NotificationEventType eventType, Order order, String trackingNumber, String trackingUrl) {
-        if (order == null || order.getCustomer() == null || order.getCustomer().getEmail() == null || order.getCustomer().getEmail().isBlank()) return;
+        if (
+            order == null ||
+            order.getCustomer() == null ||
+            order.getCustomer().getEmail() == null ||
+            order.getCustomer().getEmail().isBlank()
+        ) return;
         NotificationTemplate template = templateRepository.findByEventType(eventType).orElse(null);
         if (template == null || !template.isEnabled()) return;
 
-        Map<String,String> vars = Map.ofEntries(
-                Map.entry("customerName", safe(order.getCustomer().getName())),
-                Map.entry("orderNumber", safe(order.getOrderNumber())),
-                Map.entry("total", money(order.getTotal())),
-                Map.entry("paymentMethod", safe(order.getPaymentMethod())),
-                Map.entry("status", safe(order.getOrderStatus())),
-                Map.entry("trackingNumber", safe(trackingNumber)),
-                Map.entry("trackingUrl", safe(trackingUrl))
+        Map<String, String> vars = Map.ofEntries(
+            Map.entry("customerName", safe(order.getCustomer().getName())),
+            Map.entry("orderNumber", safe(order.getOrderNumber())),
+            Map.entry("total", money(order.getTotal())),
+            Map.entry("paymentMethod", safe(order.getPaymentMethod())),
+            Map.entry("status", safe(order.getOrderStatus())),
+            Map.entry("trackingNumber", safe(trackingNumber)),
+            Map.entry("trackingUrl", safe(trackingUrl))
         );
         Notification n = new Notification();
         n.setEventType(eventType);
@@ -56,7 +63,9 @@ public class NotificationService {
         n.setCustomerId(order.getCustomer().getId());
         n.setOrderId(order.getId());
         n.setStatus("PENDING");
-        n.setLastError(mailEnabled ? null : "Email delivery is currently disabled; it will be sent after SMTP is enabled");
+        n.setLastError(
+            mailEnabled ? null : "Email delivery is currently disabled; it will be sent after SMTP is enabled"
+        );
         notificationRepository.save(n);
     }
 
@@ -93,7 +102,10 @@ public class NotificationService {
     @Transactional
     protected void markSent(Long id) {
         notificationRepository.findById(id).ifPresent(n -> {
-            n.setStatus("SENT"); n.setSentAt(LocalDateTime.now()); n.setLastError(null); n.setNextAttemptAt(null);
+            n.setStatus("SENT");
+            n.setSentAt(LocalDateTime.now());
+            n.setLastError(null);
+            n.setNextAttemptAt(null);
         });
     }
 
@@ -101,16 +113,28 @@ public class NotificationService {
     protected void markFailed(Long id, String error) {
         notificationRepository.findById(id).ifPresent(n -> {
             n.setStatus(n.getAttemptCount() >= 5 ? "FAILED_PERMANENT" : "FAILED");
-            n.setLastError(error == null ? "Unknown mail delivery error" : error.substring(0, Math.min(1000, error.length())));
-            n.setNextAttemptAt(n.getAttemptCount() >= 5 ? null : LocalDateTime.now().plusMinutes(Math.min(60, 5L * n.getAttemptCount())));
+            n.setLastError(
+                error == null ? "Unknown mail delivery error" : error.substring(0, Math.min(1000, error.length()))
+            );
+            n.setNextAttemptAt(
+                n.getAttemptCount() >= 5
+                    ? null
+                    : LocalDateTime.now().plusMinutes(Math.min(60, 5L * n.getAttemptCount()))
+            );
         });
     }
 
-    private static String render(String template, Map<String,String> vars) {
+    private static String render(String template, Map<String, String> vars) {
         String result = template;
         for (var e : vars.entrySet()) result = result.replace("{{" + e.getKey() + "}}", e.getValue());
         return result;
     }
-    private static String safe(String value){return value == null ? "" : value;}
-    private static String money(BigDecimal value){return value == null ? "0.00" : value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();}
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static String money(BigDecimal value) {
+        return value == null ? "0.00" : value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
 }

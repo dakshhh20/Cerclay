@@ -1,16 +1,15 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 
 @Entity
 @Table(
-        name = "order_items",
-        indexes = {
-                @Index(name = "idx_order_items_order", columnList = "order_id"),
-                @Index(name = "idx_order_items_product", columnList = "product_id")
-        }
+    name = "order_items",
+    indexes = {
+        @Index(name = "idx_order_items_order", columnList = "order_id"),
+        @Index(name = "idx_order_items_product", columnList = "product_id"),
+    }
 )
 public class OrderItem {
 
@@ -59,8 +58,7 @@ public class OrderItem {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
-    public OrderItem() {
-    }
+    public OrderItem() {}
 
     public Long getId() {
         return id;
@@ -102,8 +100,13 @@ public class OrderItem {
         return quantity;
     }
 
-    public Integer getPackSize() { return packSize; }
-    public void setPackSize(Integer packSize) { this.packSize = packSize; }
+    public Integer getPackSize() {
+        return packSize;
+    }
+
+    public void setPackSize(Integer packSize) {
+        this.packSize = packSize;
+    }
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;

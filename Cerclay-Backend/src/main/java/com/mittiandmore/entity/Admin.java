@@ -27,8 +27,7 @@ public class Admin {
     @Column(nullable = false)
     private String role = "ADMIN";
 
-    public Admin() {
-    }
+    public Admin() {}
 
     public Long getId() {
         return id;

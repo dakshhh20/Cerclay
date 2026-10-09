@@ -13,8 +13,7 @@ public class StoreSettingsResponse {
     private String whatsappNumber;
     private LocalDateTime updatedAt;
 
-    public StoreSettingsResponse() {
-    }
+    public StoreSettingsResponse() {}
 
     public Long getId() {
         return id;
@@ -44,8 +43,7 @@ public class StoreSettingsResponse {
         return freeShippingThreshold;
     }
 
-    public void setFreeShippingThreshold(
-            BigDecimal freeShippingThreshold) {
+    public void setFreeShippingThreshold(BigDecimal freeShippingThreshold) {
         this.freeShippingThreshold = freeShippingThreshold;
     }
 
@@ -61,8 +59,7 @@ public class StoreSettingsResponse {
         return minimumOrderValue;
     }
 
-    public void setMinimumOrderValue(
-            BigDecimal minimumOrderValue) {
+    public void setMinimumOrderValue(BigDecimal minimumOrderValue) {
         this.minimumOrderValue = minimumOrderValue;
     }
 

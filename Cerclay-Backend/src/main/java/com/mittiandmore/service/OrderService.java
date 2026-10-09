@@ -1,7 +1,7 @@
 package com.mittiandmore.service;
 
-import com.mittiandmore.dto.OrderCreateRequest;
 import com.mittiandmore.dto.CancelOrderRequest;
+import com.mittiandmore.dto.OrderCreateRequest;
 import com.mittiandmore.dto.OrderItemResponse;
 import com.mittiandmore.dto.OrderResponse;
 import com.mittiandmore.dto.ShippingQuoteRequest;
@@ -12,6 +12,7 @@ import com.mittiandmore.entity.CartItem;
 import com.mittiandmore.entity.Customer;
 import com.mittiandmore.entity.Order;
 import com.mittiandmore.entity.OrderItem;
+import com.mittiandmore.entity.Payment;
 import com.mittiandmore.entity.Product;
 import com.mittiandmore.entity.StoreSettings;
 import com.mittiandmore.exception.ApiException;
@@ -22,11 +23,6 @@ import com.mittiandmore.repository.CartRepository;
 import com.mittiandmore.repository.CustomerRepository;
 import com.mittiandmore.repository.OrderRepository;
 import com.mittiandmore.repository.PaymentRepository;
-import com.mittiandmore.entity.Payment;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -36,6 +32,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
@@ -53,18 +52,18 @@ public class OrderService {
     private final RefundService refundService;
 
     public OrderService(
-            OrderRepository orderRepository,
-            CustomerRepository customerRepository,
-            CartRepository cartRepository,
-            AddressRepository addressRepository,
-            DiscountService discountService,
-            StoreSettingsService storeSettingsService,
-            ShippingService shippingService,
-            InventoryService inventoryService,
-            NotificationService notificationService,
-            PaymentRepository paymentRepository,
-            RefundService refundService) {
-
+        OrderRepository orderRepository,
+        CustomerRepository customerRepository,
+        CartRepository cartRepository,
+        AddressRepository addressRepository,
+        DiscountService discountService,
+        StoreSettingsService storeSettingsService,
+        ShippingService shippingService,
+        InventoryService inventoryService,
+        NotificationService notificationService,
+        PaymentRepository paymentRepository,
+        RefundService refundService
+    ) {
         this.orderRepository = orderRepository;
         this.customerRepository = customerRepository;
         this.cartRepository = cartRepository;
@@ -79,58 +78,28 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(
-            Long customerId,
-            OrderCreateRequest request) {
+    public OrderResponse createOrder(Long customerId, OrderCreateRequest request) {
+        Customer customer = customerRepository
+            .findById(customerId)
+            .orElseThrow(() -> new ApiException("CUSTOMER_NOT_FOUND", "Customer not found", HttpStatus.NOT_FOUND));
 
-        Customer customer =
-                customerRepository.findById(customerId)
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        "CUSTOMER_NOT_FOUND",
-                                        "Customer not found",
-                                        HttpStatus.NOT_FOUND
-                                )
-                        );
+        Cart cart = cartRepository
+            .findByCustomerId(customerId)
+            .orElseThrow(() -> new ApiException("CART_NOT_FOUND", "Customer cart not found", HttpStatus.NOT_FOUND));
 
-        Cart cart =
-                cartRepository.findByCustomerId(customerId)
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        "CART_NOT_FOUND",
-                                        "Customer cart not found",
-                                        HttpStatus.NOT_FOUND
-                                )
-                        );
-
-        if (cart.getItems() == null
-                || cart.getItems().isEmpty()) {
-
-            throw new ApiException(
-                    "CART_EMPTY",
-                    "Cannot create order from an empty cart",
-                    HttpStatus.BAD_REQUEST
-            );
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new ApiException("CART_EMPTY", "Cannot create order from an empty cart", HttpStatus.BAD_REQUEST);
         }
 
-        Address address =
-                addressRepository.findById(request.getAddressId())
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        "ADDRESS_NOT_FOUND",
-                                        "Address not found",
-                                        HttpStatus.NOT_FOUND
-                                )
-                        );
+        Address address = addressRepository
+            .findById(request.getAddressId())
+            .orElseThrow(() -> new ApiException("ADDRESS_NOT_FOUND", "Address not found", HttpStatus.NOT_FOUND));
 
-        if (!address.getCustomer()
-                .getId()
-                .equals(customerId)) {
-
+        if (!address.getCustomer().getId().equals(customerId)) {
             throw new ApiException(
-                    "ADDRESS_ACCESS_DENIED",
-                    "You are not allowed to use this address",
-                    HttpStatus.FORBIDDEN
+                "ADDRESS_ACCESS_DENIED",
+                "You are not allowed to use this address",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -144,33 +113,21 @@ public class OrderService {
          *
          * We do not infer the payment method from payment_status.
          */
-        if (request.getPaymentMethod() == null
-                || request.getPaymentMethod().isBlank()) {
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            throw new ApiException("PAYMENT_METHOD_REQUIRED", "Payment method is required", HttpStatus.BAD_REQUEST);
+        }
 
+        String paymentMethod = request.getPaymentMethod().trim().toUpperCase(Locale.ROOT);
+
+        if (!"COD".equals(paymentMethod) && !"CASHFREE".equals(paymentMethod) && !"RAZORPAY".equals(paymentMethod)) {
             throw new ApiException(
-                    "PAYMENT_METHOD_REQUIRED",
-                    "Payment method is required",
-                    HttpStatus.BAD_REQUEST
+                "INVALID_PAYMENT_METHOD",
+                "Payment method must be COD, CASHFREE or RAZORPAY",
+                HttpStatus.BAD_REQUEST
             );
         }
 
-        String paymentMethod =
-                request.getPaymentMethod()
-                        .trim()
-                        .toUpperCase(Locale.ROOT);
-
-        if (!"COD".equals(paymentMethod)
-                && !"CASHFREE".equals(paymentMethod) && !"RAZORPAY".equals(paymentMethod)) {
-
-            throw new ApiException(
-                    "INVALID_PAYMENT_METHOD",
-                    "Payment method must be COD, CASHFREE or RAZORPAY",
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        StoreSettings settings =
-                storeSettingsService.getSettings();
+        StoreSettings settings = storeSettingsService.getSettings();
 
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal discount = BigDecimal.ZERO;
@@ -178,23 +135,17 @@ public class OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : cart.getItems()) {
-
             Product product = cartItem.getProduct();
 
             if (product == null) {
-                throw new ApiException(
-                        "INVALID_CART_ITEM",
-                        "Cart contains an invalid product",
-                        HttpStatus.BAD_REQUEST
-                );
+                throw new ApiException("INVALID_CART_ITEM", "Cart contains an invalid product", HttpStatus.BAD_REQUEST);
             }
 
             if (!Boolean.TRUE.equals(product.getActive())) {
                 throw new ApiException(
-                        "PRODUCT_UNAVAILABLE",
-                        "Product is no longer available: "
-                                + product.getName(),
-                        HttpStatus.BAD_REQUEST
+                    "PRODUCT_UNAVAILABLE",
+                    "Product is no longer available: " + product.getName(),
+                    HttpStatus.BAD_REQUEST
                 );
             }
 
@@ -203,11 +154,7 @@ public class OrderService {
             int units = quantity * packSize;
 
             if (quantity <= 0) {
-                throw new ApiException(
-                        "INVALID_QUANTITY",
-                        "Cart contains an invalid quantity",
-                        HttpStatus.BAD_REQUEST
-                );
+                throw new ApiException("INVALID_QUANTITY", "Cart contains an invalid quantity", HttpStatus.BAD_REQUEST);
             }
 
             /*
@@ -216,58 +163,52 @@ public class OrderService {
              */
             if (product.getStock() < units) {
                 throw new ApiException(
-                        "INSUFFICIENT_STOCK",
-                        "Not enough stock for product: "
-                                + product.getName(),
-                        HttpStatus.BAD_REQUEST
+                    "INSUFFICIENT_STOCK",
+                    "Not enough stock for product: " + product.getName(),
+                    HttpStatus.BAD_REQUEST
                 );
             }
 
             BigDecimal unitPrice = packSize == 2 ? product.getSetOf2Price() : product.getPrice();
             BigDecimal unitMrp = packSize == 2 ? product.getMrp().multiply(BigDecimal.valueOf(2)) : product.getMrp();
 
-            if (packSize == 2 && (!Boolean.TRUE.equals(product.getSetOf2Enabled()) || product.getSetOf2Price() == null)) {
-                throw new ApiException("SET_OF_2_NOT_AVAILABLE", "Set of 2 is not available for product: " + product.getName(), HttpStatus.BAD_REQUEST);
+            if (
+                packSize == 2 && (!Boolean.TRUE.equals(product.getSetOf2Enabled()) || product.getSetOf2Price() == null)
+            ) {
+                throw new ApiException(
+                    "SET_OF_2_NOT_AVAILABLE",
+                    "Set of 2 is not available for product: " + product.getName(),
+                    HttpStatus.BAD_REQUEST
+                );
             }
 
             if (unitPrice == null || unitMrp == null) {
                 throw new ApiException(
-                        "INVALID_PRODUCT_PRICE",
-                        "Product has invalid pricing: "
-                                + product.getName(),
-                        HttpStatus.BAD_REQUEST
+                    "INVALID_PRODUCT_PRICE",
+                    "Product has invalid pricing: " + product.getName(),
+                    HttpStatus.BAD_REQUEST
                 );
             }
 
-            if (unitPrice.compareTo(BigDecimal.ZERO) < 0
-                    || unitMrp.compareTo(BigDecimal.ZERO) < 0) {
-
+            if (unitPrice.compareTo(BigDecimal.ZERO) < 0 || unitMrp.compareTo(BigDecimal.ZERO) < 0) {
                 throw new ApiException(
-                        "INVALID_PRODUCT_PRICE",
-                        "Product has invalid pricing: "
-                                + product.getName(),
-                        HttpStatus.BAD_REQUEST
+                    "INVALID_PRODUCT_PRICE",
+                    "Product has invalid pricing: " + product.getName(),
+                    HttpStatus.BAD_REQUEST
                 );
             }
 
-            BigDecimal quantityDecimal =
-                    BigDecimal.valueOf(quantity);
+            BigDecimal quantityDecimal = BigDecimal.valueOf(quantity);
 
-            BigDecimal itemSellingPrice =
-                    unitPrice.multiply(quantityDecimal);
+            BigDecimal itemSellingPrice = unitPrice.multiply(quantityDecimal);
 
-            BigDecimal itemMrp =
-                    unitMrp.multiply(quantityDecimal);
+            BigDecimal itemMrp = unitMrp.multiply(quantityDecimal);
 
-            BigDecimal itemDiscount =
-                    itemMrp.subtract(itemSellingPrice)
-                            .max(BigDecimal.ZERO);
+            BigDecimal itemDiscount = itemMrp.subtract(itemSellingPrice).max(BigDecimal.ZERO);
 
-            subtotal =
-                    subtotal.add(itemSellingPrice);
+            subtotal = subtotal.add(itemSellingPrice);
 
-            discount =
-                    discount.add(itemDiscount);
+            discount = discount.add(itemDiscount);
 
             /*
              * Reduce stock as part of the same transaction.
@@ -281,13 +222,15 @@ public class OrderService {
              * the other stock update.
              */
             int previousStock = product.getStock();
-            product.setStock(
-                    previousStock - units
-            );
+            product.setStock(previousStock - units);
 
             inventoryService.recordStockChange(
-                    product, previousStock, product.getStock(),
-                    "ORDER_PLACED", "Stock reserved for order", "SYSTEM"
+                product,
+                previousStock,
+                product.getStock(),
+                "ORDER_PLACED",
+                "Stock reserved for order",
+                "SYSTEM"
             );
 
             OrderItem orderItem = new OrderItem();
@@ -299,9 +242,7 @@ public class OrderService {
             orderItem.setPackSize(packSize);
             orderItem.setUnitPrice(unitPrice);
             orderItem.setUnitMrp(unitMrp);
-            orderItem.setDiscount(
-                    scaleMoney(itemDiscount)
-            );
+            orderItem.setDiscount(scaleMoney(itemDiscount));
 
             orderItems.add(orderItem);
         }
@@ -312,16 +253,11 @@ public class OrderService {
         BigDecimal couponDiscount = discountService.calculateAndConsume(request.getCouponCode(), subtotal, customerId);
         discount = scaleMoney(discount.add(couponDiscount));
 
-        if (subtotal.compareTo(
-                settings.getMinimumOrderValue()) < 0) {
-
+        if (subtotal.compareTo(settings.getMinimumOrderValue()) < 0) {
             throw new ApiException(
-                    "MINIMUM_ORDER_VALUE_NOT_MET",
-                    "Minimum order value is ₹"
-                            + scaleMoney(
-                            settings.getMinimumOrderValue()
-                    ),
-                    HttpStatus.BAD_REQUEST
+                "MINIMUM_ORDER_VALUE_NOT_MET",
+                "Minimum order value is ₹" + scaleMoney(settings.getMinimumOrderValue()),
+                HttpStatus.BAD_REQUEST
             );
         }
 
@@ -333,57 +269,36 @@ public class OrderService {
         shippingRequest.setOrderValue(subtotal);
         shippingRequest.setPaymentMethod(paymentMethod);
 
-        ShippingQuoteResponse shippingQuote =
-                shippingService.calculateQuote(shippingRequest);
+        ShippingQuoteResponse shippingQuote = shippingService.calculateQuote(shippingRequest);
 
         if (!shippingQuote.isServiceable()) {
-            throw new ApiException(
-                    "DELIVERY_NOT_AVAILABLE",
-                    shippingQuote.getMessage(),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("DELIVERY_NOT_AVAILABLE", shippingQuote.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
-        BigDecimal shippingCharge =
-                scaleMoney(shippingQuote.getCustomerShippingCharge());
+        BigDecimal shippingCharge = scaleMoney(shippingQuote.getCustomerShippingCharge());
 
-        BigDecimal total =
-                subtotal
-                        .subtract(couponDiscount)
-                        .add(gst)
-                        .add(shippingCharge);
+        BigDecimal total = subtotal.subtract(couponDiscount).add(gst).add(shippingCharge);
 
         total = scaleMoney(total);
 
         for (OrderItem orderItem : orderItems) {
-
-            BigDecimal itemSellingTotal =
-                    orderItem.getUnitPrice()
-                            .multiply(
-                                    BigDecimal.valueOf(
-                                            orderItem.getQuantity()
-                                    )
-                            );
+            BigDecimal itemSellingTotal = orderItem
+                .getUnitPrice()
+                .multiply(BigDecimal.valueOf(orderItem.getQuantity()));
 
             // Item selling prices already include taxes. Keep GST stored as zero for schema/backward compatibility.
             BigDecimal itemGst = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
             BigDecimal itemTotal = itemSellingTotal;
 
-            orderItem.setGst(
-                    scaleMoney(itemGst)
-            );
+            orderItem.setGst(scaleMoney(itemGst));
 
-            orderItem.setTotal(
-                    scaleMoney(itemTotal)
-            );
+            orderItem.setTotal(scaleMoney(itemTotal));
         }
 
         Order order = new Order();
 
-        order.setOrderNumber(
-                generateOrderNumber()
-        );
+        order.setOrderNumber(generateOrderNumber());
 
         order.setCustomer(customer);
 
@@ -443,15 +358,9 @@ public class OrderService {
          * Both the order and the stock changes are committed
          * together because this method is @Transactional.
          */
-        Order savedOrder =
-                orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
-        notificationService.enqueue(
-                NotificationEventType.ORDER_PLACED,
-                savedOrder,
-                null,
-                null
-        );
+        notificationService.enqueue(NotificationEventType.ORDER_PLACED, savedOrder, null, null);
 
         return mapToResponse(savedOrder);
     }
@@ -478,9 +387,9 @@ public class OrderService {
                 notificationService.enqueue(NotificationEventType.ORDER_DELIVERED, saved, null, null);
             } else if ("CANCELLED".equals(normalized)) {
                 throw new ApiException(
-                        "CANCELLATION_REQUIRES_CANCEL_ENDPOINT",
-                        "Use the cancellation endpoint so inventory and payment rules are applied",
-                        HttpStatus.BAD_REQUEST
+                    "CANCELLATION_REQUIRES_CANCEL_ENDPOINT",
+                    "Use the cancellation endpoint so inventory and payment rules are applied",
+                    HttpStatus.BAD_REQUEST
                 );
             }
         }
@@ -490,55 +399,54 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancelOrder(Long id, String reason, String cancelledBy) {
-        Order order = orderRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new ApiException(
-                        "ORDER_NOT_FOUND",
-                        "Order not found",
-                        HttpStatus.NOT_FOUND
-                ));
+        Order order = orderRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new ApiException("ORDER_NOT_FOUND", "Order not found", HttpStatus.NOT_FOUND));
 
         String currentStatus = order.getOrderStatus();
         if ("CANCELLED".equals(currentStatus)) {
-            throw new ApiException(
-                    "ORDER_ALREADY_CANCELLED",
-                    "Order is already cancelled",
-                    HttpStatus.CONFLICT
-            );
+            throw new ApiException("ORDER_ALREADY_CANCELLED", "Order is already cancelled", HttpStatus.CONFLICT);
         }
 
         if (Set.of("SHIPPED", "DELIVERED").contains(currentStatus)) {
             throw new ApiException(
-                    "ORDER_CANNOT_BE_CANCELLED",
-                    "Shipped or delivered orders cannot be cancelled through this flow",
-                    HttpStatus.CONFLICT
+                "ORDER_CANNOT_BE_CANCELLED",
+                "Shipped or delivered orders cannot be cancelled through this flow",
+                HttpStatus.CONFLICT
             );
         }
 
         if (!Set.of("PLACED", "PROCESSING", "PACKED").contains(currentStatus)) {
             throw new ApiException(
-                    "ORDER_CANNOT_BE_CANCELLED",
-                    "Order cannot be cancelled in its current status",
-                    HttpStatus.CONFLICT
+                "ORDER_CANNOT_BE_CANCELLED",
+                "Order cannot be cancelled in its current status",
+                HttpStatus.CONFLICT
             );
         }
 
         // Paid Razorpay orders are now cancelled only as part of the real refund workflow.
-        if (("CASHFREE".equalsIgnoreCase(order.getPaymentMethod()) || "RAZORPAY".equalsIgnoreCase(order.getPaymentMethod()))
-                && "PAID".equalsIgnoreCase(order.getPaymentStatus())) {
+        if (
+            ("CASHFREE".equalsIgnoreCase(order.getPaymentMethod()) ||
+                "RAZORPAY".equalsIgnoreCase(order.getPaymentMethod())) &&
+            "PAID".equalsIgnoreCase(order.getPaymentStatus())
+        ) {
             refundService.refundCancelledOrder(order, reason);
         }
 
         if (order.getItems() != null) {
             for (OrderItem item : order.getItems()) {
                 inventoryService.restoreStockForCancellation(
-                        item.getProduct().getId(),
-                        item.getQuantity(),
-                        order.getId()
+                    item.getProduct().getId(),
+                    item.getQuantity(),
+                    order.getId()
                 );
             }
         }
 
-        if ("CASHFREE".equalsIgnoreCase(order.getPaymentMethod()) || "RAZORPAY".equalsIgnoreCase(order.getPaymentMethod())) {
+        if (
+            "CASHFREE".equalsIgnoreCase(order.getPaymentMethod()) ||
+            "RAZORPAY".equalsIgnoreCase(order.getPaymentMethod())
+        ) {
             Payment payment = paymentRepository.findByOrderId(order.getId()).orElse(null);
             if (payment != null && !"PAID".equalsIgnoreCase(payment.getPaymentStatus())) {
                 payment.setPaymentStatus("CANCELLED");
@@ -550,59 +458,37 @@ public class OrderService {
 
         order.setOrderStatus("CANCELLED");
         order.setCancelledAt(LocalDateTime.now());
-        order.setCancellationReason(
-                reason == null || reason.isBlank() ? "Order cancelled" : reason.trim()
-        );
-        order.setCancelledBy(
-                cancelledBy == null || cancelledBy.isBlank() ? "SYSTEM" : cancelledBy
-        );
+        order.setCancellationReason(reason == null || reason.isBlank() ? "Order cancelled" : reason.trim());
+        order.setCancelledBy(cancelledBy == null || cancelledBy.isBlank() ? "SYSTEM" : cancelledBy);
 
         Order saved = orderRepository.save(order);
 
-        notificationService.enqueue(
-                NotificationEventType.ORDER_CANCELLED,
-                saved,
-                null,
-                null
-        );
+        notificationService.enqueue(NotificationEventType.ORDER_CANCELLED, saved, null, null);
 
         return mapToResponse(saved);
     }
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long id) {
-
         Order order = findOrder(id);
 
         return mapToResponse(order);
     }
 
     @Transactional(readOnly = true)
-    public OrderResponse getOrderByNumber(
-            String orderNumber) {
-
-        Order order =
-                orderRepository.findByOrderNumber(orderNumber)
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        "ORDER_NOT_FOUND",
-                                        "Order not found",
-                                        HttpStatus.NOT_FOUND
-                                )
-                        );
+    public OrderResponse getOrderByNumber(String orderNumber) {
+        Order order = orderRepository
+            .findByOrderNumber(orderNumber)
+            .orElseThrow(() -> new ApiException("ORDER_NOT_FOUND", "Order not found", HttpStatus.NOT_FOUND));
 
         return mapToResponse(order);
     }
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
-
-        List<Order> orders =
-                orderRepository.findAll(
-                        org.springframework.data.domain.Sort
-                                .by(org.springframework.data.domain.Sort.Direction.DESC,
-                                        "createdAt")
-                );
+        List<Order> orders = orderRepository.findAll(
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+        );
 
         List<OrderResponse> responses = new ArrayList<>();
 
@@ -614,183 +500,101 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getCustomerOrders(
-            Long customerId) {
+    public List<OrderResponse> getCustomerOrders(Long customerId) {
+        List<Order> orders = orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
 
-        List<Order> orders =
-                orderRepository
-                        .findByCustomerIdOrderByCreatedAtDesc(
-                                customerId
-                        );
-
-        List<OrderResponse> responses =
-                new ArrayList<>();
+        List<OrderResponse> responses = new ArrayList<>();
 
         for (Order order : orders) {
-            responses.add(
-                    mapToResponse(order)
-            );
+            responses.add(mapToResponse(order));
         }
 
         return responses;
     }
 
     private Order findOrder(Long id) {
-
-        return orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new ApiException(
-                                "ORDER_NOT_FOUND",
-                                "Order not found",
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+        return orderRepository
+            .findById(id)
+            .orElseThrow(() -> new ApiException("ORDER_NOT_FOUND", "Order not found", HttpStatus.NOT_FOUND));
     }
 
-    private OrderResponse mapToResponse(
-            Order order) {
-
-        OrderResponse response =
-                new OrderResponse();
+    private OrderResponse mapToResponse(Order order) {
+        OrderResponse response = new OrderResponse();
 
         response.setId(order.getId());
-        response.setOrderNumber(
-                order.getOrderNumber()
-        );
-        response.setCustomerId(
-                order.getCustomer().getId()
-        );
+        response.setOrderNumber(order.getOrderNumber());
+        response.setCustomerId(order.getCustomer().getId());
 
-        response.setSubtotal(
-                order.getSubtotal()
-        );
+        response.setSubtotal(order.getSubtotal());
 
-        response.setDiscount(
-                order.getDiscount()
-        );
+        response.setDiscount(order.getDiscount());
         response.setCouponCode(order.getCouponCode());
 
-        response.setGst(
-                order.getGst()
-        );
+        response.setGst(order.getGst());
 
-        response.setShippingCharge(
-                order.getShippingCharge()
-        );
+        response.setShippingCharge(order.getShippingCharge());
 
-        response.setTotal(
-                order.getTotal()
-        );
+        response.setTotal(order.getTotal());
 
-        response.setAddressName(
-                order.getAddressName()
-        );
+        response.setAddressName(order.getAddressName());
 
-        response.setAddressPhone(
-                order.getAddressPhone()
-        );
+        response.setAddressPhone(order.getAddressPhone());
 
-        response.setAddressLine1(
-                order.getAddressLine1()
-        );
+        response.setAddressLine1(order.getAddressLine1());
 
-        response.setAddressLine2(
-                order.getAddressLine2()
-        );
+        response.setAddressLine2(order.getAddressLine2());
 
-        response.setAddressCity(
-                order.getAddressCity()
-        );
+        response.setAddressCity(order.getAddressCity());
 
-        response.setAddressState(
-                order.getAddressState()
-        );
+        response.setAddressState(order.getAddressState());
 
-        response.setAddressPincode(
-                order.getAddressPincode()
-        );
+        response.setAddressPincode(order.getAddressPincode());
 
-        response.setAddressType(
-                order.getAddressType()
-        );
+        response.setAddressType(order.getAddressType());
 
         /*
          * Return the explicit payment method to the frontend.
          */
-        response.setPaymentMethod(
-                order.getPaymentMethod()
-        );
+        response.setPaymentMethod(order.getPaymentMethod());
 
-        response.setPaymentStatus(
-                order.getPaymentStatus()
-        );
+        response.setPaymentStatus(order.getPaymentStatus());
 
-        response.setOrderStatus(
-                order.getOrderStatus()
-        );
+        response.setOrderStatus(order.getOrderStatus());
 
-        response.setCreatedAt(
-                order.getCreatedAt()
-        );
+        response.setCreatedAt(order.getCreatedAt());
 
-        response.setUpdatedAt(
-                order.getUpdatedAt()
-        );
+        response.setUpdatedAt(order.getUpdatedAt());
         response.setDeliveredAt(order.getDeliveredAt());
         response.setCancelledAt(order.getCancelledAt());
         response.setCancellationReason(order.getCancellationReason());
         response.setCancelledBy(order.getCancelledBy());
 
-        List<OrderItemResponse> itemResponses =
-                new ArrayList<>();
+        List<OrderItemResponse> itemResponses = new ArrayList<>();
 
         if (order.getItems() != null) {
-
             for (OrderItem item : order.getItems()) {
+                OrderItemResponse itemResponse = new OrderItemResponse();
 
-                OrderItemResponse itemResponse =
-                        new OrderItemResponse();
+                itemResponse.setId(item.getId());
 
-                itemResponse.setId(
-                        item.getId()
-                );
+                itemResponse.setProductId(item.getProduct().getId());
 
-                itemResponse.setProductId(
-                        item.getProduct().getId()
-                );
+                itemResponse.setProductName(item.getProductName());
 
-                itemResponse.setProductName(
-                        item.getProductName()
-                );
+                itemResponse.setProductSku(item.getProductSku());
 
-                itemResponse.setProductSku(
-                        item.getProductSku()
-                );
-
-                itemResponse.setQuantity(
-                        item.getQuantity()
-                );
+                itemResponse.setQuantity(item.getQuantity());
                 itemResponse.setPackSize(item.getPackSize());
 
-                itemResponse.setUnitPrice(
-                        item.getUnitPrice()
-                );
+                itemResponse.setUnitPrice(item.getUnitPrice());
 
-                itemResponse.setUnitMrp(
-                        item.getUnitMrp()
-                );
+                itemResponse.setUnitMrp(item.getUnitMrp());
 
-                itemResponse.setDiscount(
-                        item.getDiscount()
-                );
+                itemResponse.setDiscount(item.getDiscount());
 
-                itemResponse.setGst(
-                        item.getGst()
-                );
+                itemResponse.setGst(item.getGst());
 
-                itemResponse.setTotal(
-                        item.getTotal()
-                );
+                itemResponse.setTotal(item.getTotal());
 
                 itemResponses.add(itemResponse);
             }
@@ -801,65 +605,27 @@ public class OrderService {
         return response;
     }
 
-    private BigDecimal calculateGst(
-            BigDecimal amount,
-            BigDecimal rate) {
-
-        if (amount == null
-                || rate == null
-                || rate.compareTo(BigDecimal.ZERO) <= 0) {
-
-            return BigDecimal.ZERO.setScale(
-                    2,
-                    RoundingMode.HALF_UP
-            );
+    private BigDecimal calculateGst(BigDecimal amount, BigDecimal rate) {
+        if (amount == null || rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
-        return amount
-                .multiply(rate)
-                .divide(
-                        BigDecimal.valueOf(100),
-                        2,
-                        RoundingMode.HALF_UP
-                );
+        return amount.multiply(rate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal scaleMoney(
-            BigDecimal amount) {
-
+    private BigDecimal scaleMoney(BigDecimal amount) {
         if (amount == null) {
-
-            return BigDecimal.ZERO.setScale(
-                    2,
-                    RoundingMode.HALF_UP
-            );
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
-        return amount.setScale(
-                2,
-                RoundingMode.HALF_UP
-        );
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 
     private String generateOrderNumber() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 
-        String timestamp =
-                LocalDateTime.now()
-                        .format(
-                                DateTimeFormatter.ofPattern(
-                                        "yyyyMMddHHmmss"
-                                )
-                        );
+        String randomPart = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        String randomPart =
-                UUID.randomUUID()
-                        .toString()
-                        .substring(0, 8)
-                        .toUpperCase();
-
-        return "ORD-"
-                + timestamp
-                + "-"
-                + randomPart;
+        return "ORD-" + timestamp + "-" + randomPart;
     }
 }

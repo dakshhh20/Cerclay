@@ -22,57 +22,141 @@ public class ShipmentResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ShipmentResponse() {
+    public ShipmentResponse() {}
+
+    public Long getId() {
+        return id;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getOrderId() { return orderId; }
-    public void setOrderId(Long orderId) { this.orderId = orderId; }
+    public Long getOrderId() {
+        return orderId;
+    }
 
-    public String getCourierName() { return courierName; }
-    public void setCourierName(String courierName) { this.courierName = courierName; }
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
+    }
 
-    public String getProviderCode() { return providerCode; }
-    public void setProviderCode(String providerCode) { this.providerCode = providerCode; }
+    public String getCourierName() {
+        return courierName;
+    }
 
-    public String getTrackingNumber() { return trackingNumber; }
-    public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }
+    public void setCourierName(String courierName) {
+        this.courierName = courierName;
+    }
 
-    public String getShipmentStatus() { return shipmentStatus; }
-    public void setShipmentStatus(String shipmentStatus) { this.shipmentStatus = shipmentStatus; }
+    public String getProviderCode() {
+        return providerCode;
+    }
 
-    public String getExternalStatus() { return externalStatus; }
-    public void setExternalStatus(String externalStatus) { this.externalStatus = externalStatus; }
+    public void setProviderCode(String providerCode) {
+        this.providerCode = providerCode;
+    }
 
-    public String getExternalStatusDisplay() { return externalStatusDisplay; }
-    public void setExternalStatusDisplay(String externalStatusDisplay) { this.externalStatusDisplay = externalStatusDisplay; }
+    public String getTrackingNumber() {
+        return trackingNumber;
+    }
 
-    public String getCurrentLocation() { return currentLocation; }
-    public void setCurrentLocation(String currentLocation) { this.currentLocation = currentLocation; }
+    public void setTrackingNumber(String trackingNumber) {
+        this.trackingNumber = trackingNumber;
+    }
 
-    public String getLatestTrackingComment() { return latestTrackingComment; }
-    public void setLatestTrackingComment(String latestTrackingComment) { this.latestTrackingComment = latestTrackingComment; }
+    public String getShipmentStatus() {
+        return shipmentStatus;
+    }
 
-    public String getCustomerTrackUrl() { return customerTrackUrl; }
-    public void setCustomerTrackUrl(String customerTrackUrl) { this.customerTrackUrl = customerTrackUrl; }
+    public void setShipmentStatus(String shipmentStatus) {
+        this.shipmentStatus = shipmentStatus;
+    }
 
-    public LocalDateTime getLastEventAt() { return lastEventAt; }
-    public void setLastEventAt(LocalDateTime lastEventAt) { this.lastEventAt = lastEventAt; }
+    public String getExternalStatus() {
+        return externalStatus;
+    }
 
-    public LocalDateTime getLastSyncedAt() { return lastSyncedAt; }
-    public void setLastSyncedAt(LocalDateTime lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
+    public void setExternalStatus(String externalStatus) {
+        this.externalStatus = externalStatus;
+    }
 
-    public LocalDateTime getShippedAt() { return shippedAt; }
-    public void setShippedAt(LocalDateTime shippedAt) { this.shippedAt = shippedAt; }
+    public String getExternalStatusDisplay() {
+        return externalStatusDisplay;
+    }
 
-    public LocalDateTime getDeliveredAt() { return deliveredAt; }
-    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
+    public void setExternalStatusDisplay(String externalStatusDisplay) {
+        this.externalStatusDisplay = externalStatusDisplay;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getCurrentLocation() {
+        return currentLocation;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setCurrentLocation(String currentLocation) {
+        this.currentLocation = currentLocation;
+    }
+
+    public String getLatestTrackingComment() {
+        return latestTrackingComment;
+    }
+
+    public void setLatestTrackingComment(String latestTrackingComment) {
+        this.latestTrackingComment = latestTrackingComment;
+    }
+
+    public String getCustomerTrackUrl() {
+        return customerTrackUrl;
+    }
+
+    public void setCustomerTrackUrl(String customerTrackUrl) {
+        this.customerTrackUrl = customerTrackUrl;
+    }
+
+    public LocalDateTime getLastEventAt() {
+        return lastEventAt;
+    }
+
+    public void setLastEventAt(LocalDateTime lastEventAt) {
+        this.lastEventAt = lastEventAt;
+    }
+
+    public LocalDateTime getLastSyncedAt() {
+        return lastSyncedAt;
+    }
+
+    public void setLastSyncedAt(LocalDateTime lastSyncedAt) {
+        this.lastSyncedAt = lastSyncedAt;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public void setShippedAt(LocalDateTime shippedAt) {
+        this.shippedAt = shippedAt;
+    }
+
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(LocalDateTime deliveredAt) {
+        this.deliveredAt = deliveredAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

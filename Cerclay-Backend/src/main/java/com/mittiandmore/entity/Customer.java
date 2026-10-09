@@ -2,7 +2,6 @@ package com.mittiandmore.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -44,8 +43,7 @@ public class Customer {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Customer() {
-    }
+    public Customer() {}
 
     @PrePersist
     protected void onCreate() {

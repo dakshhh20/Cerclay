@@ -1,12 +1,13 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
+      ...(options.body && !(options.body instanceof FormData)
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...options.headers,
     },
     ...options,
@@ -88,7 +89,10 @@ function normaliseProductImages(product) {
     imageUrl: resolveImageUrl(product.imageUrl),
     primaryImageUrl: resolveImageUrl(product.primaryImageUrl),
     images: Array.isArray(product.images)
-      ? product.images.map((image) => ({ ...image, imageUrl: resolveImageUrl(image?.imageUrl || image?.url) }))
+      ? product.images.map((image) => ({
+          ...image,
+          imageUrl: resolveImageUrl(image?.imageUrl || image?.url),
+        }))
       : product.images,
   };
 }
@@ -99,13 +103,18 @@ export function getProducts(params = {}) {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
   if (params.category) query.set("category", params.category);
-  if (params.minPrice !== undefined && params.minPrice !== null && params.minPrice !== "") query.set("minPrice", String(params.minPrice));
-  if (params.maxPrice !== undefined && params.maxPrice !== null && params.maxPrice !== "") query.set("maxPrice", String(params.maxPrice));
-  if (params.inStock !== undefined && params.inStock !== null && params.inStock !== "") query.set("inStock", String(params.inStock));
+  if (params.minPrice !== undefined && params.minPrice !== null && params.minPrice !== "")
+    query.set("minPrice", String(params.minPrice));
+  if (params.maxPrice !== undefined && params.maxPrice !== null && params.maxPrice !== "")
+    query.set("maxPrice", String(params.maxPrice));
+  if (params.inStock !== undefined && params.inStock !== null && params.inStock !== "")
+    query.set("inStock", String(params.inStock));
   if (params.sort) query.set("sort", params.sort);
   if (params.colorGroup) query.set("colorGroup", params.colorGroup);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  return request(`/products${suffix}`).then((data) => Array.isArray(data) ? data.map(normaliseProductImages) : data);
+  return request(`/products${suffix}`).then((data) =>
+    Array.isArray(data) ? data.map(normaliseProductImages) : data
+  );
 }
 
 export async function getProduct(identifier) {
@@ -118,9 +127,10 @@ export async function getProduct(identifier) {
   // the source used by the shop and is backend-driven.
   const data = await getProducts();
   const products = Array.isArray(data) ? data : data?.content || data?.products || [];
-  const product = products.find((item) =>
-    String(item?.id ?? "") === value ||
-    String(item?.slug ?? "").toLowerCase() === value.toLowerCase()
+  const product = products.find(
+    (item) =>
+      String(item?.id ?? "") === value ||
+      String(item?.slug ?? "").toLowerCase() === value.toLowerCase()
   );
 
   if (product) return normaliseProductImages(product);
@@ -175,15 +185,14 @@ export function getWishlist() {
 export function addWishlistItem(productId) {
   return request(`/wishlist/${encodeURIComponent(productId)}`, {
     method: "POST",
-  }).then((data) => Array.isArray(data) ? data.map(normaliseProductImages) : []);
+  }).then((data) => (Array.isArray(data) ? data.map(normaliseProductImages) : []));
 }
 
 export function removeWishlistItem(productId) {
   return request(`/wishlist/${encodeURIComponent(productId)}`, {
     method: "DELETE",
-  }).then((data) => Array.isArray(data) ? data.map(normaliseProductImages) : []);
+  }).then((data) => (Array.isArray(data) ? data.map(normaliseProductImages) : []));
 }
-
 
 export function getRecentlyViewedProducts() {
   return request("/recently-viewed").then((data) =>
@@ -194,7 +203,7 @@ export function getRecentlyViewedProducts() {
 export function recordRecentlyViewedProduct(productId) {
   return request(`/recently-viewed/${encodeURIComponent(productId)}`, {
     method: "POST",
-  }).then((data) => Array.isArray(data) ? data.map(normaliseProductImages) : []);
+  }).then((data) => (Array.isArray(data) ? data.map(normaliseProductImages) : []));
 }
 
 export function getLocalRecentlyViewedIds() {
@@ -224,7 +233,6 @@ export function clearLocalRecentlyViewed() {
     // Ignore storage failures.
   }
 }
-
 
 function normaliseCartResponse(cart) {
   if (!cart || !Array.isArray(cart.items)) return cart;
@@ -448,7 +456,6 @@ export function cancelCustomerOrder(orderId, reason) {
     body: JSON.stringify({ reason }),
   });
 }
-
 
 export function getCustomerReturns() {
   return request("/returns");

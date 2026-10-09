@@ -10,29 +10,18 @@ public class PasswordResetRequest {
     private String destination;
 
     @NotBlank(message = "Destination type is required")
-    @Pattern(
-            regexp = "EMAIL|PHONE",
-            message = "Destination type must be EMAIL or PHONE"
-    )
+    @Pattern(regexp = "EMAIL|PHONE", message = "Destination type must be EMAIL or PHONE")
     private String destinationType;
 
     @NotBlank(message = "OTP is required")
-    @Pattern(
-            regexp = "\\d{6}",
-            message = "OTP must contain exactly 6 digits"
-    )
+    @Pattern(regexp = "\\d{6}", message = "OTP must contain exactly 6 digits")
     private String otp;
 
     @NotBlank(message = "New password is required")
-    @Size(
-            min = 8,
-            max = 100,
-            message = "Password must be between 8 and 100 characters"
-    )
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     private String newPassword;
 
-    public PasswordResetRequest() {
-    }
+    public PasswordResetRequest() {}
 
     public String getDestination() {
         return destination;

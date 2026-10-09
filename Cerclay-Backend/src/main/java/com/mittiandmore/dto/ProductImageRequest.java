@@ -13,8 +13,7 @@ public class ProductImageRequest {
 
     private Integer displayOrder = 0;
 
-    public ProductImageRequest() {
-    }
+    public ProductImageRequest() {}
 
     public String getImageUrl() {
         return imageUrl;

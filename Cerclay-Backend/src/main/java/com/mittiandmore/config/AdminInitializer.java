@@ -19,17 +19,13 @@ public class AdminInitializer implements CommandLineRunner {
     @Value("${app.admin.password}")
     private String adminPassword;
 
-    public AdminInitializer(
-            AdminRepository adminRepository,
-            PasswordEncoder passwordEncoder) {
-
+    public AdminInitializer(AdminRepository adminRepository, PasswordEncoder passwordEncoder) {
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
-
         if (adminRepository.findByEmail(adminEmail).isPresent()) {
             return;
         }
@@ -39,9 +35,7 @@ public class AdminInitializer implements CommandLineRunner {
         admin.setName("Store Admin");
         admin.setEmail(adminEmail);
 
-        admin.setPassword(
-                passwordEncoder.encode(adminPassword)
-        );
+        admin.setPassword(passwordEncoder.encode(adminPassword));
 
         admin.setActive(true);
         admin.setRole("ADMIN");

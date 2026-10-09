@@ -9,7 +9,11 @@ function money(value) {
 
 function formatDate(value) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(value).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function OrdersPage() {
@@ -26,8 +30,24 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, [customer, status]);
 
-  if (status === "loading" || loading) return <section className="page-container state-page"><p>Loading your orders…</p></section>;
-  if (error) return <section className="page-container state-page"><div className="state-box error-state"><strong>Unable to load orders</strong><span>{error}</span><button className="secondary-button" onClick={() => window.location.reload()}>Try again</button></div></section>;
+  if (status === "loading" || loading)
+    return (
+      <section className="page-container state-page">
+        <p>Loading your orders…</p>
+      </section>
+    );
+  if (error)
+    return (
+      <section className="page-container state-page">
+        <div className="state-box error-state">
+          <strong>Unable to load orders</strong>
+          <span>{error}</span>
+          <button className="secondary-button" onClick={() => window.location.reload()}>
+            Try again
+          </button>
+        </div>
+      </section>
+    );
 
   return (
     <section className="orders-page page-container">
@@ -37,14 +57,18 @@ export default function OrdersPage() {
           <h1>Your orders</h1>
           <p>View your purchases, payment status and delivery progress.</p>
         </div>
-        <Link className="secondary-button" to="/account">Back to account</Link>
+        <Link className="secondary-button" to="/account">
+          Back to account
+        </Link>
       </div>
 
       {orders.length === 0 ? (
         <div className="state-box orders-empty">
           <strong>No orders yet.</strong>
           <span>Your completed purchases will appear here.</span>
-          <Link className="primary-button" to="/shop">Start shopping</Link>
+          <Link className="primary-button" to="/shop">
+            Start shopping
+          </Link>
         </div>
       ) : (
         <div className="orders-list">
@@ -57,17 +81,38 @@ export default function OrdersPage() {
                   <span>{formatDate(order.createdAt)}</span>
                 </div>
                 <div className="order-status-group">
-                  <span className="status-pill">{String(order.orderStatus || "PLACED").replaceAll("_", " ")}</span>
+                  <span className="status-pill">
+                    {String(order.orderStatus || "PLACED").replaceAll("_", " ")}
+                  </span>
                   <strong>{money(order.total)}</strong>
                 </div>
               </div>
               <div className="order-card-meta">
-                <div><span>Items</span><strong>{order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}</strong></div>
-                <div><span>Payment</span><strong>{order.paymentMethod === "COD" ? "Cash on delivery" : order.paymentStatus || "—"}</strong></div>
-                <div><span>Deliver to</span><strong>{order.addressCity}, {order.addressPincode}</strong></div>
+                <div>
+                  <span>Items</span>
+                  <strong>
+                    {order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}
+                  </strong>
+                </div>
+                <div>
+                  <span>Payment</span>
+                  <strong>
+                    {order.paymentMethod === "COD"
+                      ? "Cash on delivery"
+                      : order.paymentStatus || "—"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Deliver to</span>
+                  <strong>
+                    {order.addressCity}, {order.addressPincode}
+                  </strong>
+                </div>
               </div>
               <div className="order-card-actions">
-                <Link className="primary-button" to={`/account/orders/${order.id}`}>View order</Link>
+                <Link className="primary-button" to={`/account/orders/${order.id}`}>
+                  View order
+                </Link>
               </div>
             </article>
           ))}

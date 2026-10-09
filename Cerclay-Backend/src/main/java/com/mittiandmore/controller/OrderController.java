@@ -1,23 +1,22 @@
 package com.mittiandmore.controller;
 
-import com.mittiandmore.dto.OrderCreateRequest;
 import com.mittiandmore.dto.CancelOrderRequest;
+import com.mittiandmore.dto.OrderCreateRequest;
 import com.mittiandmore.dto.OrderResponse;
 import com.mittiandmore.dto.ShipmentResponse;
 import com.mittiandmore.dto.ShipmentTrackingEventResponse;
-import com.mittiandmore.entity.ShipmentTrackingEvent;
 import com.mittiandmore.entity.Customer;
 import com.mittiandmore.entity.Shipment;
+import com.mittiandmore.entity.ShipmentTrackingEvent;
 import com.mittiandmore.repository.CustomerRepository;
 import com.mittiandmore.service.OrderService;
 import com.mittiandmore.service.ShipmentService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -28,10 +27,10 @@ public class OrderController {
     private final ShipmentService shipmentService;
 
     public OrderController(
-            OrderService orderService,
-            CustomerRepository customerRepository,
-            ShipmentService shipmentService) {
-
+        OrderService orderService,
+        CustomerRepository customerRepository,
+        ShipmentService shipmentService
+    ) {
         this.orderService = orderService;
         this.customerRepository = customerRepository;
         this.shipmentService = shipmentService;
@@ -39,29 +38,22 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
-            @Valid @RequestBody OrderCreateRequest request,
-            Authentication authentication) {
+        @Valid @RequestBody OrderCreateRequest request,
+        Authentication authentication
+    ) {
+        Long customerId = getAuthenticatedCustomerId(authentication);
 
-        Long customerId =
-                getAuthenticatedCustomerId(authentication);
+        OrderResponse order = orderService.createOrder(customerId, request);
 
-        OrderResponse order =
-                orderService.createOrder(
-                        customerId,
-                        request
-                );
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(order);
+        return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
     @PostMapping("/{id}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(
-            @PathVariable Long id,
-            @Valid @RequestBody(required = false) CancelOrderRequest request,
-            Authentication authentication) {
-
+        @PathVariable Long id,
+        @Valid @RequestBody(required = false) CancelOrderRequest request,
+        Authentication authentication
+    ) {
         Long customerId = getAuthenticatedCustomerId(authentication);
         OrderResponse existing = orderService.getOrderById(id);
         if (!existing.getCustomerId().equals(customerId)) {
@@ -69,26 +61,17 @@ public class OrderController {
         }
 
         String reason = request == null ? null : request.getReason();
-        return ResponseEntity.ok(
-                orderService.cancelOrder(id, reason, "CUSTOMER")
-        );
+        return ResponseEntity.ok(orderService.cancelOrder(id, reason, "CUSTOMER"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrderById(
-            @PathVariable Long id,
-            Authentication authentication) {
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id, Authentication authentication) {
+        Long customerId = getAuthenticatedCustomerId(authentication);
 
-        Long customerId =
-                getAuthenticatedCustomerId(authentication);
-
-        OrderResponse order =
-                orderService.getOrderById(id);
+        OrderResponse order = orderService.getOrderById(id);
 
         if (!order.getCustomerId().equals(customerId)) {
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         return ResponseEntity.ok(order);
@@ -96,34 +79,25 @@ public class OrderController {
 
     @GetMapping("/number/{orderNumber}")
     public ResponseEntity<OrderResponse> getOrderByNumber(
-            @PathVariable String orderNumber,
-            Authentication authentication) {
+        @PathVariable String orderNumber,
+        Authentication authentication
+    ) {
+        Long customerId = getAuthenticatedCustomerId(authentication);
 
-        Long customerId =
-                getAuthenticatedCustomerId(authentication);
-
-        OrderResponse order =
-                orderService.getOrderByNumber(orderNumber);
+        OrderResponse order = orderService.getOrderByNumber(orderNumber);
 
         if (!order.getCustomerId().equals(customerId)) {
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         return ResponseEntity.ok(order);
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getMyOrders(
-            Authentication authentication) {
+    public ResponseEntity<List<OrderResponse>> getMyOrders(Authentication authentication) {
+        Long customerId = getAuthenticatedCustomerId(authentication);
 
-        Long customerId =
-                getAuthenticatedCustomerId(authentication);
-
-        return ResponseEntity.ok(
-                orderService.getCustomerOrders(customerId)
-        );
+        return ResponseEntity.ok(orderService.getCustomerOrders(customerId));
     }
 
     /**
@@ -131,12 +105,8 @@ public class OrderController {
      * Shipment creation remains admin-only.
      */
     @GetMapping("/{id}/shipment")
-    public ResponseEntity<ShipmentResponse> getMyOrderShipment(
-            @PathVariable Long id,
-            Authentication authentication) {
-
-        Long customerId =
-                getAuthenticatedCustomerId(authentication);
+    public ResponseEntity<ShipmentResponse> getMyOrderShipment(@PathVariable Long id, Authentication authentication) {
+        Long customerId = getAuthenticatedCustomerId(authentication);
 
         OrderResponse order = orderService.getOrderById(id);
 
@@ -151,9 +121,9 @@ public class OrderController {
 
     @GetMapping("/{id}/shipment/timeline")
     public ResponseEntity<List<ShipmentTrackingEventResponse>> getMyOrderShipmentTimeline(
-            @PathVariable Long id,
-            Authentication authentication) {
-
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
         Long customerId = getAuthenticatedCustomerId(authentication);
         OrderResponse order = orderService.getOrderById(id);
         if (!order.getCustomerId().equals(customerId)) {
@@ -201,18 +171,12 @@ public class OrderController {
         return response;
     }
 
-    private Long getAuthenticatedCustomerId(
-            Authentication authentication) {
-
+    private Long getAuthenticatedCustomerId(Authentication authentication) {
         String email = authentication.getName();
 
-        Customer customer =
-                customerRepository.findByEmail(email)
-                        .orElseThrow(() ->
-                                new IllegalStateException(
-                                        "Authenticated customer not found"
-                                )
-                        );
+        Customer customer = customerRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new IllegalStateException("Authenticated customer not found"));
 
         return customer.getId();
     }

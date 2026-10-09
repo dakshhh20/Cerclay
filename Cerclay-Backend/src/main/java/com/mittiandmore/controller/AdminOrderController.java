@@ -1,14 +1,13 @@
 package com.mittiandmore.controller;
 
-import com.mittiandmore.dto.OrderResponse;
 import com.mittiandmore.dto.CancelOrderRequest;
+import com.mittiandmore.dto.OrderResponse;
 import com.mittiandmore.dto.OrderStatusRequest;
-import jakarta.validation.Valid;
 import com.mittiandmore.service.OrderService;
+import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/orders")
@@ -30,25 +29,24 @@ public class AdminOrderController {
     }
 
     @PutMapping("/{orderId}/status")
-    public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long orderId, @Valid @RequestBody OrderStatusRequest request) {
+    public ResponseEntity<OrderResponse> updateStatus(
+        @PathVariable Long orderId,
+        @Valid @RequestBody OrderStatusRequest request
+    ) {
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, request.getStatus()));
     }
 
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(
-            @PathVariable Long orderId,
-            @Valid @RequestBody(required = false) CancelOrderRequest request) {
-
+        @PathVariable Long orderId,
+        @Valid @RequestBody(required = false) CancelOrderRequest request
+    ) {
         String reason = request == null ? null : request.getReason();
-        return ResponseEntity.ok(
-                orderService.cancelOrder(orderId, reason, "ADMIN")
-        );
+        return ResponseEntity.ok(orderService.cancelOrder(orderId, reason, "ADMIN"));
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrder(
-            @PathVariable Long orderId
-    ) {
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 }

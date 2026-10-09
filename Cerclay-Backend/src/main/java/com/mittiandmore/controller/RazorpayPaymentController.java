@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/payments/razorpay")
 public class RazorpayPaymentController {
+
     private final RazorpayPaymentService service;
     private final CustomerRepository customerRepository;
 
@@ -22,27 +23,36 @@ public class RazorpayPaymentController {
     }
 
     @PostMapping("/orders/{orderId}")
-    public ResponseEntity<RazorpayOrderResponse> createOrder(@PathVariable Long orderId, Authentication authentication) {
+    public ResponseEntity<RazorpayOrderResponse> createOrder(
+        @PathVariable Long orderId,
+        Authentication authentication
+    ) {
         return ResponseEntity.ok(service.createGatewayOrder(customerId(authentication), orderId));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Void> verify(@Valid @RequestBody RazorpayVerifyRequest request, Authentication authentication) {
+    public ResponseEntity<Void> verify(
+        @Valid @RequestBody RazorpayVerifyRequest request,
+        Authentication authentication
+    ) {
         service.verifyPayment(customerId(authentication), request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<Void> webhook(@RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
-                                        @RequestHeader(value = "x-razorpay-event-id", required = false) String eventId,
-                                        @RequestBody String payload) {
+    public ResponseEntity<Void> webhook(
+        @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+        @RequestHeader(value = "x-razorpay-event-id", required = false) String eventId,
+        @RequestBody String payload
+    ) {
         service.handleWebhook(payload, signature, eventId);
         return ResponseEntity.ok().build();
     }
 
     private Long customerId(Authentication authentication) {
-        Customer customer = customerRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new IllegalStateException("Authenticated customer not found"));
+        Customer customer = customerRepository
+            .findByEmail(authentication.getName())
+            .orElseThrow(() -> new IllegalStateException("Authenticated customer not found"));
         return customer.getId();
     }
 }

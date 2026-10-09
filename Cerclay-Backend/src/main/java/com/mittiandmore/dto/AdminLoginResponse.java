@@ -7,15 +7,9 @@ public class AdminLoginResponse {
     private String email;
     private String role;
 
-    public AdminLoginResponse() {
-    }
+    public AdminLoginResponse() {}
 
-    public AdminLoginResponse(
-            Long id,
-            String name,
-            String email,
-            String role) {
-
+    public AdminLoginResponse(Long id, String name, String email, String role) {
         this.id = id;
         this.name = name;
         this.email = email;

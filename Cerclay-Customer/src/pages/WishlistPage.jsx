@@ -15,22 +15,32 @@ export default function WishlistPage() {
           <h1>Your wishlist</h1>
           <p>Keep the pieces you love close until you’re ready to bring them home.</p>
         </div>
-        <span className="wishlist-count">{items.length} {items.length === 1 ? "piece" : "pieces"}</span>
+        <span className="wishlist-count">
+          {items.length} {items.length === 1 ? "piece" : "pieces"}
+        </span>
       </div>
 
       {loading ? (
-        <div className="state-box wishlist-state"><span>Loading your saved pieces…</span></div>
+        <div className="state-box wishlist-state">
+          <span>Loading your saved pieces…</span>
+        </div>
       ) : items.length === 0 ? (
         <div className="wishlist-empty">
-          <div className="wishlist-empty-icon"><Heart size={25} strokeWidth={1.4} /></div>
+          <div className="wishlist-empty-icon">
+            <Heart size={25} strokeWidth={1.4} />
+          </div>
           <p className="eyebrow">NOTHING SAVED YET</p>
           <h2>Find something worth keeping.</h2>
           <p>Tap the heart on any Cerclay piece and it will appear here.</p>
-          <Link to="/shop" className="primary-button">Explore the collection <ArrowRight size={16} /></Link>
+          <Link to="/shop" className="primary-button">
+            Explore the collection <ArrowRight size={16} />
+          </Link>
         </div>
       ) : (
         <div className="product-grid wishlist-grid">
-          {items.map((product) => <ProductCard key={product.id} product={product} />)}
+          {items.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
         </div>
       )}
     </section>

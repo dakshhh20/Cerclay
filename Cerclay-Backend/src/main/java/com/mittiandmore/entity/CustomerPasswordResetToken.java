@@ -1,7 +1,6 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -28,8 +27,7 @@ public class CustomerPasswordResetToken {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public CustomerPasswordResetToken() {
-    }
+    public CustomerPasswordResetToken() {}
 
     @PrePersist
     protected void onCreate() {

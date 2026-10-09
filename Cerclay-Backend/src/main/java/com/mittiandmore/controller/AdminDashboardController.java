@@ -7,8 +7,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/dashboard")
 public class AdminDashboardController {
+
     private final AdminDashboardService service;
-    public AdminDashboardController(AdminDashboardService service){this.service=service;}
+
+    public AdminDashboardController(AdminDashboardService service) {
+        this.service = service;
+    }
+
     @GetMapping
-    public AdminDashboardResponse dashboard(@RequestParam(defaultValue="30") int days){return service.getDashboard(days);}
+    public AdminDashboardResponse dashboard(@RequestParam(defaultValue = "30") int days) {
+        return service.getDashboard(days);
+    }
 }

@@ -1,3 +1,135 @@
-import React,{useEffect,useState} from "react";import {Link,useParams} from "react-router-dom";import {getCustomerReturn,API_BASE_URL} from "../lib/api";
-function pretty(v){return String(v||"—").replaceAll("_"," ").toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());} function money(v){return `₹${Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}`;} function date(v){return v?new Date(v).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"}):"—";}
-export default function ReturnDetailPage(){const {returnId}=useParams();const [item,setItem]=useState(null);const [error,setError]=useState("");useEffect(()=>{getCustomerReturn(returnId).then(setItem).catch(e=>setError(e.message||"Unable to load return."));},[returnId]);if(error)return <section className="page-container state-page"><div className="state-box error-state"><strong>Unable to load return</strong><span>{error}</span><Link className="secondary-button" to="/account/returns">Back to returns</Link></div></section>;if(!item)return <section className="page-container state-page"><p>Loading return…</p></section>;return <section className="return-detail-page page-container"><div className="order-detail-heading"><div><p className="eyebrow">RETURN · ORDER {item.orderNumber}</p><h1>{pretty(item.status)}</h1><p>Requested {date(item.requestedAt)}</p></div><Link className="secondary-button" to="/account/returns">All returns</Link></div><div className="order-detail-layout"><main className="order-detail-main"><section className="order-detail-card"><div className="checkout-card-heading"><div><p className="eyebrow">ITEMS</p><h2>Items being returned</h2></div></div><div className="order-detail-items">{(item.items||[]).map(i=><div className="order-detail-item" key={i.id}><div><strong>{i.productName}</strong><span>SKU: {i.sku||"—"}</span></div><span>× {i.quantity}</span><strong>{money(Number(i.unitPrice)*Number(i.quantity))}</strong></div>)}</div></section><section className="order-detail-card"><div className="checkout-card-heading"><div><p className="eyebrow">PHOTOS</p><h2>Return evidence</h2></div></div><div className="return-photo-grid">{(item.photos||[]).map(p=><img key={p.id} src={p.url.startsWith("http")?p.url:`${API_BASE_URL.replace(/\/api$/,"")}${p.url}`} alt={p.originalFileName||"Return photo"}/>)}</div></section></main><aside className="order-detail-side"><section className="checkout-summary-card order-summary-card"><p className="eyebrow">RETURN SUMMARY</p><h2>{pretty(item.reason)}</h2><div className="checkout-summary-lines"><div><span>Estimated refund</span><strong>{money(item.estimatedRefundAmount)}</strong></div><div><span>Return shipping</span><strong>Free</strong></div><div><span>Refund method</span><strong>Original payment</strong></div></div><div className="checkout-total"><span>Status</span><strong>{pretty(item.status)}</strong></div>{item.adminNote&&<p className="order-action-message">{item.adminNote}</p>}</section></aside></div></section>;}
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { getCustomerReturn, API_BASE_URL } from "../lib/api";
+function pretty(v) {
+  return String(v || "—")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function money(v) {
+  return `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+function date(v) {
+  return v
+    ? new Date(v).toLocaleString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "—";
+}
+export default function ReturnDetailPage() {
+  const { returnId } = useParams();
+  const [item, setItem] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    getCustomerReturn(returnId)
+      .then(setItem)
+      .catch((e) => setError(e.message || "Unable to load return."));
+  }, [returnId]);
+  if (error)
+    return (
+      <section className="page-container state-page">
+        <div className="state-box error-state">
+          <strong>Unable to load return</strong>
+          <span>{error}</span>
+          <Link className="secondary-button" to="/account/returns">
+            Back to returns
+          </Link>
+        </div>
+      </section>
+    );
+  if (!item)
+    return (
+      <section className="page-container state-page">
+        <p>Loading return…</p>
+      </section>
+    );
+  return (
+    <section className="return-detail-page page-container">
+      <div className="order-detail-heading">
+        <div>
+          <p className="eyebrow">RETURN · ORDER {item.orderNumber}</p>
+          <h1>{pretty(item.status)}</h1>
+          <p>Requested {date(item.requestedAt)}</p>
+        </div>
+        <Link className="secondary-button" to="/account/returns">
+          All returns
+        </Link>
+      </div>
+      <div className="order-detail-layout">
+        <main className="order-detail-main">
+          <section className="order-detail-card">
+            <div className="checkout-card-heading">
+              <div>
+                <p className="eyebrow">ITEMS</p>
+                <h2>Items being returned</h2>
+              </div>
+            </div>
+            <div className="order-detail-items">
+              {(item.items || []).map((i) => (
+                <div className="order-detail-item" key={i.id}>
+                  <div>
+                    <strong>{i.productName}</strong>
+                    <span>SKU: {i.sku || "—"}</span>
+                  </div>
+                  <span>× {i.quantity}</span>
+                  <strong>{money(Number(i.unitPrice) * Number(i.quantity))}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="order-detail-card">
+            <div className="checkout-card-heading">
+              <div>
+                <p className="eyebrow">PHOTOS</p>
+                <h2>Return evidence</h2>
+              </div>
+            </div>
+            <div className="return-photo-grid">
+              {(item.photos || []).map((p) => (
+                <img
+                  key={p.id}
+                  src={
+                    p.url.startsWith("http")
+                      ? p.url
+                      : `${API_BASE_URL.replace(/\/api$/, "")}${p.url}`
+                  }
+                  alt={p.originalFileName || "Return photo"}
+                />
+              ))}
+            </div>
+          </section>
+        </main>
+        <aside className="order-detail-side">
+          <section className="checkout-summary-card order-summary-card">
+            <p className="eyebrow">RETURN SUMMARY</p>
+            <h2>{pretty(item.reason)}</h2>
+            <div className="checkout-summary-lines">
+              <div>
+                <span>Estimated refund</span>
+                <strong>{money(item.estimatedRefundAmount)}</strong>
+              </div>
+              <div>
+                <span>Return shipping</span>
+                <strong>Free</strong>
+              </div>
+              <div>
+                <span>Refund method</span>
+                <strong>Original payment</strong>
+              </div>
+            </div>
+            <div className="checkout-total">
+              <span>Status</span>
+              <strong>{pretty(item.status)}</strong>
+            </div>
+            {item.adminNote && <p className="order-action-message">{item.adminNote}</p>}
+          </section>
+        </aside>
+      </div>
+    </section>
+  );
+}

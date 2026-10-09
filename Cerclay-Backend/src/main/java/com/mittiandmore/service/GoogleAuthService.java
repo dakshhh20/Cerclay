@@ -5,16 +5,15 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.mittiandmore.entity.Customer;
 import com.mittiandmore.exception.ApiException;
 import com.mittiandmore.repository.CustomerRepository;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.UUID;
-import java.util.Optional;
 
 @Service
 public class GoogleAuthService {
@@ -27,10 +26,10 @@ public class GoogleAuthService {
     private String googleClientId;
 
     public GoogleAuthService(
-            Optional<GoogleIdTokenVerifier> verifier,
-            CustomerRepository customerRepository,
-            PasswordEncoder passwordEncoder) {
-
+        Optional<GoogleIdTokenVerifier> verifier,
+        CustomerRepository customerRepository,
+        PasswordEncoder passwordEncoder
+    ) {
         this.verifier = verifier.orElse(null);
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
@@ -38,20 +37,19 @@ public class GoogleAuthService {
 
     @Transactional
     public Customer authenticate(String credential) {
-
         if (googleClientId == null || googleClientId.isBlank() || verifier == null) {
             throw new ApiException(
-                    "GOOGLE_LOGIN_NOT_CONFIGURED",
-                    "Google Login is not configured yet",
-                    HttpStatus.SERVICE_UNAVAILABLE
+                "GOOGLE_LOGIN_NOT_CONFIGURED",
+                "Google Login is not configured yet",
+                HttpStatus.SERVICE_UNAVAILABLE
             );
         }
 
         if (credential == null || credential.isBlank()) {
             throw new ApiException(
-                    "GOOGLE_CREDENTIAL_REQUIRED",
-                    "Google credential is required",
-                    HttpStatus.BAD_REQUEST
+                "GOOGLE_CREDENTIAL_REQUIRED",
+                "Google credential is required",
+                HttpStatus.BAD_REQUEST
             );
         }
 
@@ -59,61 +57,51 @@ public class GoogleAuthService {
 
         try {
             idToken = verifier.verify(credential);
-
         } catch (GeneralSecurityException | IOException exception) {
-
             throw new ApiException(
-                    "INVALID_GOOGLE_CREDENTIAL",
-                    "Google credential could not be verified",
-                    HttpStatus.UNAUTHORIZED
+                "INVALID_GOOGLE_CREDENTIAL",
+                "Google credential could not be verified",
+                HttpStatus.UNAUTHORIZED
             );
         }
 
         if (idToken == null) {
-
             throw new ApiException(
-                    "INVALID_GOOGLE_CREDENTIAL",
-                    "Google credential could not be verified",
-                    HttpStatus.UNAUTHORIZED
+                "INVALID_GOOGLE_CREDENTIAL",
+                "Google credential could not be verified",
+                HttpStatus.UNAUTHORIZED
             );
         }
 
-        GoogleIdToken.Payload payload =
-                idToken.getPayload();
+        GoogleIdToken.Payload payload = idToken.getPayload();
 
-        String googleId =
-                payload.getSubject();
+        String googleId = payload.getSubject();
 
-        String email =
-                payload.getEmail();
+        String email = payload.getEmail();
 
-        Boolean emailVerified =
-                payload.getEmailVerified();
+        Boolean emailVerified = payload.getEmailVerified();
 
-        if (googleId == null
-                || googleId.isBlank()
-                || email == null
-                || email.isBlank()
-                || !Boolean.TRUE.equals(emailVerified)) {
-
+        if (
+            googleId == null ||
+            googleId.isBlank() ||
+            email == null ||
+            email.isBlank() ||
+            !Boolean.TRUE.equals(emailVerified)
+        ) {
             throw new ApiException(
-                    "INVALID_GOOGLE_ACCOUNT",
-                    "Google account information could not be verified",
-                    HttpStatus.UNAUTHORIZED
+                "INVALID_GOOGLE_ACCOUNT",
+                "Google account information could not be verified",
+                HttpStatus.UNAUTHORIZED
             );
         }
 
-        Customer customer =
-                customerRepository
-                        .findByGoogleId(googleId)
-                        .orElse(null);
+        Customer customer = customerRepository.findByGoogleId(googleId).orElse(null);
 
         /*
          * Existing customer already linked
          * to this Google account.
          */
         if (customer != null) {
-
             ensureActive(customer);
 
             return customer;
@@ -123,15 +111,9 @@ public class GoogleAuthService {
          * Check whether a customer already exists
          * with the same email address.
          */
-        customer =
-                customerRepository
-                        .findByEmail(
-                                email.trim().toLowerCase()
-                        )
-                        .orElse(null);
+        customer = customerRepository.findByEmail(email.trim().toLowerCase()).orElse(null);
 
         if (customer != null) {
-
             /*
              * Google has verified the email.
              *
@@ -141,7 +123,6 @@ public class GoogleAuthService {
              * account.
              */
             if (isGoogleAuthoritativeEmail(payload)) {
-
                 customer.setGoogleId(googleId);
                 customer.setEmailVerified(true);
 
@@ -155,9 +136,9 @@ public class GoogleAuthService {
              * to an existing account.
              */
             throw new ApiException(
-                    "ACCOUNT_ALREADY_EXISTS",
-                    "An account with this email already exists. Please sign in with your existing account first.",
-                    HttpStatus.CONFLICT
+                "ACCOUNT_ALREADY_EXISTS",
+                "An account with this email already exists. Please sign in with your existing account first.",
+                HttpStatus.CONFLICT
             );
         }
 
@@ -166,20 +147,16 @@ public class GoogleAuthService {
          *
          * Create a new customer account.
          */
-        Customer newCustomer =
-                new Customer();
+        Customer newCustomer = new Customer();
 
         /*
          * Google provides the user's display name
          * as the "name" claim.
          */
-        String name =
-                (String) payload.get("name");
+        String name = (String) payload.get("name");
 
         if (name == null || name.isBlank()) {
-
-            int atIndex =
-                    email.indexOf('@');
+            int atIndex = email.indexOf('@');
 
             if (atIndex > 0) {
                 name = email.substring(0, atIndex);
@@ -188,17 +165,11 @@ public class GoogleAuthService {
             }
         }
 
-        newCustomer.setName(
-                name.trim()
-        );
+        newCustomer.setName(name.trim());
 
-        newCustomer.setEmail(
-                email.trim().toLowerCase()
-        );
+        newCustomer.setEmail(email.trim().toLowerCase());
 
-        newCustomer.setGoogleId(
-                googleId
-        );
+        newCustomer.setGoogleId(googleId);
 
         /*
          * Google-authenticated customers don't need
@@ -207,64 +178,33 @@ public class GoogleAuthService {
          * It prevents the password field from being null
          * if the database requires a password value.
          */
-        newCustomer.setPassword(
-                passwordEncoder.encode(
-                        UUID.randomUUID().toString()
-                )
-        );
+        newCustomer.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
 
         newCustomer.setActive(true);
 
-        newCustomer.setRole(
-                "CUSTOMER"
-        );
+        newCustomer.setRole("CUSTOMER");
 
-        newCustomer.setEmailVerified(
-                true
-        );
+        newCustomer.setEmailVerified(true);
 
-        newCustomer.setPhoneVerified(
-                false
-        );
+        newCustomer.setPhoneVerified(false);
 
-        return customerRepository.save(
-                newCustomer
-        );
+        return customerRepository.save(newCustomer);
     }
 
-    private boolean isGoogleAuthoritativeEmail(
-            GoogleIdToken.Payload payload) {
+    private boolean isGoogleAuthoritativeEmail(GoogleIdToken.Payload payload) {
+        String email = payload.getEmail();
 
-        String email =
-                payload.getEmail();
-
-        String hostedDomain =
-                payload.getHostedDomain();
+        String hostedDomain = payload.getHostedDomain();
 
         return (
-                email != null
-                        && email
-                        .toLowerCase()
-                        .endsWith("@gmail.com")
-        )
-                || (
-                hostedDomain != null
-                        && !hostedDomain.isBlank()
+            (email != null && email.toLowerCase().endsWith("@gmail.com")) ||
+            (hostedDomain != null && !hostedDomain.isBlank())
         );
     }
 
-    private void ensureActive(
-            Customer customer) {
-
-        if (Boolean.FALSE.equals(
-                customer.getActive()
-        )) {
-
-            throw new ApiException(
-                    "CUSTOMER_ACCOUNT_DISABLED",
-                    "Customer account is disabled",
-                    HttpStatus.FORBIDDEN
-            );
+    private void ensureActive(Customer customer) {
+        if (Boolean.FALSE.equals(customer.getActive())) {
+            throw new ApiException("CUSTOMER_ACCOUNT_DISABLED", "Customer account is disabled", HttpStatus.FORBIDDEN);
         }
     }
 }

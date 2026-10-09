@@ -11,16 +11,15 @@ public class ErrorResponse {
     private LocalDateTime timestamp;
     private String path;
 
-    public ErrorResponse() {
-    }
+    public ErrorResponse() {}
 
     public ErrorResponse(
-            String code,
-            String message,
-            Map<String, String> errors,
-            LocalDateTime timestamp,
-            String path) {
-
+        String code,
+        String message,
+        Map<String, String> errors,
+        LocalDateTime timestamp,
+        String path
+    ) {
         this.code = code;
         this.message = message;
         this.errors = errors;

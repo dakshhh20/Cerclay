@@ -13,26 +13,21 @@ public class AdminUserDetailsService implements UserDetailsService {
 
     private final AdminRepository adminRepository;
 
-    public AdminUserDetailsService(
-            AdminRepository adminRepository) {
+    public AdminUserDetailsService(AdminRepository adminRepository) {
         this.adminRepository = adminRepository;
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
-
-        Admin admin =
-                adminRepository.findByEmail(email)
-                        .orElseThrow(() ->
-                                new UsernameNotFoundException(
-                                        "Admin not found"));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Admin admin = adminRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("Admin not found"));
 
         return User.builder()
-                .username(admin.getEmail())
-                .password(admin.getPassword())
-                .roles(admin.getRole())
-                .disabled(!admin.getActive())
-                .build();
+            .username(admin.getEmail())
+            .password(admin.getPassword())
+            .roles(admin.getRole())
+            .disabled(!admin.getActive())
+            .build();
     }
 }

@@ -83,7 +83,11 @@ export default function GoogleSignInButton() {
   return (
     <div className="google-signin-wrap">
       <div ref={containerRef} className="google-signin-button" />
-      {error && <p className="form-error compact-error" role="alert">{error}</p>}
+      {error && (
+        <p className="form-error compact-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

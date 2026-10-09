@@ -33,37 +33,51 @@ export function WishlistProvider({ children }) {
     }
   }, [status, customer, refreshWishlist]);
 
-  const isWishlisted = useCallback((productId) =>
-    items.some((item) => String(item?.id) === String(productId)), [items]);
+  const isWishlisted = useCallback(
+    (productId) => items.some((item) => String(item?.id) === String(productId)),
+    [items]
+  );
 
-  const add = useCallback(async (productId) => {
-    if (!customer) throw new Error("Please sign in to save products to your wishlist.");
-    const next = await addWishlistItem(productId);
-    setItems(next);
-    return next;
-  }, [customer]);
+  const add = useCallback(
+    async (productId) => {
+      if (!customer) throw new Error("Please sign in to save products to your wishlist.");
+      const next = await addWishlistItem(productId);
+      setItems(next);
+      return next;
+    },
+    [customer]
+  );
 
-  const remove = useCallback(async (productId) => {
-    if (!customer) throw new Error("Please sign in to manage your wishlist.");
-    const next = await removeWishlistItem(productId);
-    setItems(next);
-    return next;
-  }, [customer]);
+  const remove = useCallback(
+    async (productId) => {
+      if (!customer) throw new Error("Please sign in to manage your wishlist.");
+      const next = await removeWishlistItem(productId);
+      setItems(next);
+      return next;
+    },
+    [customer]
+  );
 
-  const toggle = useCallback(async (productId) => {
-    return isWishlisted(productId) ? remove(productId) : add(productId);
-  }, [add, isWishlisted, remove]);
+  const toggle = useCallback(
+    async (productId) => {
+      return isWishlisted(productId) ? remove(productId) : add(productId);
+    },
+    [add, isWishlisted, remove]
+  );
 
-  const value = useMemo(() => ({
-    items,
-    count: items.length,
-    loading,
-    refreshWishlist,
-    isWishlisted,
-    add,
-    remove,
-    toggle,
-  }), [items, loading, refreshWishlist, isWishlisted, add, remove, toggle]);
+  const value = useMemo(
+    () => ({
+      items,
+      count: items.length,
+      loading,
+      refreshWishlist,
+      isWishlisted,
+      add,
+      remove,
+      toggle,
+    }),
+    [items, loading, refreshWishlist, isWishlisted, add, remove, toggle]
+  );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
 }

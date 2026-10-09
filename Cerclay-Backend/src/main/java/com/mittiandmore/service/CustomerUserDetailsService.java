@@ -11,34 +11,25 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Primary
-public class CustomerUserDetailsService
-        implements UserDetailsService {
+public class CustomerUserDetailsService implements UserDetailsService {
 
     private final CustomerRepository customerRepository;
 
-    public CustomerUserDetailsService(
-            CustomerRepository customerRepository) {
-
+    public CustomerUserDetailsService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
-
-        Customer customer =
-                customerRepository.findByEmail(email)
-                        .orElseThrow(() ->
-                                new UsernameNotFoundException(
-                                        "Customer not found"
-                                )
-                        );
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Customer customer = customerRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
 
         return User.builder()
-                .username(customer.getEmail())
-                .password(customer.getPassword())
-                .roles(customer.getRole())
-                .disabled(!customer.getActive())
-                .build();
+            .username(customer.getEmail())
+            .password(customer.getPassword())
+            .roles(customer.getRole())
+            .disabled(!customer.getActive())
+            .build();
     }
 }

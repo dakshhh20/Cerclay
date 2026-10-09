@@ -1,51 +1,26 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "shipments",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_shipments_order",
-                        columnNames = "order_id"
-                ),
-                @UniqueConstraint(
-                        name = "uk_shipments_tracking_number",
-                        columnNames = "tracking_number"
-                ),
-                @UniqueConstraint(
-                        name = "uk_shipments_provider_external_id",
-                        columnNames = {
-                                "provider_code",
-                                "external_shipment_id"
-                        }
-                )
-        },
-        indexes = {
-                @Index(
-                        name = "idx_shipments_status",
-                        columnList = "shipment_status"
-                ),
-                @Index(
-                        name = "idx_shipments_tracking_number",
-                        columnList = "tracking_number"
-                ),
-                @Index(
-                        name = "idx_shipments_provider",
-                        columnList = "provider_code"
-                ),
-                @Index(
-                        name = "idx_shipments_external_id",
-                        columnList = "external_shipment_id"
-                ),
-                @Index(
-                        name = "idx_shipments_created_at",
-                        columnList = "created_at"
-                )
-        }
+    name = "shipments",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_shipments_order", columnNames = "order_id"),
+        @UniqueConstraint(name = "uk_shipments_tracking_number", columnNames = "tracking_number"),
+        @UniqueConstraint(
+            name = "uk_shipments_provider_external_id",
+            columnNames = { "provider_code", "external_shipment_id" }
+        ),
+    },
+    indexes = {
+        @Index(name = "idx_shipments_status", columnList = "shipment_status"),
+        @Index(name = "idx_shipments_tracking_number", columnList = "tracking_number"),
+        @Index(name = "idx_shipments_provider", columnList = "provider_code"),
+        @Index(name = "idx_shipments_external_id", columnList = "external_shipment_id"),
+        @Index(name = "idx_shipments_created_at", columnList = "created_at"),
+    }
 )
 public class Shipment {
 
@@ -54,11 +29,7 @@ public class Shipment {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "order_id",
-            nullable = false,
-            unique = true
-    )
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
     /**
@@ -101,11 +72,7 @@ public class Shipment {
      * RTO
      * CANCELLED
      */
-    @Column(
-            name = "shipment_status",
-            nullable = false,
-            length = 30
-    )
+    @Column(name = "shipment_status", nullable = false, length = 30)
     private String shipmentStatus = "CREATED";
 
     /**
@@ -167,21 +134,13 @@ public class Shipment {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
-    @Column(
-            name = "created_at",
-            nullable = false,
-            updatable = false
-    )
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(
-            name = "updated_at",
-            nullable = false
-    )
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Shipment() {
-    }
+    public Shipment() {}
 
     @PrePersist
     protected void onCreate() {

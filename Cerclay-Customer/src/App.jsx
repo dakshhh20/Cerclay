@@ -39,15 +39,78 @@ export default function App() {
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
           <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
-          <Route path="/account" element={<Protected><AccountPage /></Protected>} />
-          <Route path="/account/addresses" element={<Protected><AddressesPage /></Protected>} />
-          <Route path="/account/wishlist" element={<Protected><WishlistPage /></Protected>} />
-          <Route path="/account/reviews" element={<Protected><ReviewsPage /></Protected>} />
-          <Route path="/account/orders" element={<Protected><OrdersPage /></Protected>} />
-          <Route path="/account/orders/:orderId" element={<Protected><OrderDetailPage /></Protected>} />
-          <Route path="/account/orders/:orderId/return" element={<Protected><ReturnRequestPage /></Protected>} />
-          <Route path="/account/returns" element={<Protected><ReturnsPage /></Protected>} />
-          <Route path="/account/returns/:returnId" element={<Protected><ReturnDetailPage /></Protected>} />
+          <Route
+            path="/account"
+            element={
+              <Protected>
+                <AccountPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/addresses"
+            element={
+              <Protected>
+                <AddressesPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/wishlist"
+            element={
+              <Protected>
+                <WishlistPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/reviews"
+            element={
+              <Protected>
+                <ReviewsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/orders"
+            element={
+              <Protected>
+                <OrdersPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/orders/:orderId"
+            element={
+              <Protected>
+                <OrderDetailPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/orders/:orderId/return"
+            element={
+              <Protected>
+                <ReturnRequestPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/returns"
+            element={
+              <Protected>
+                <ReturnsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account/returns/:returnId"
+            element={
+              <Protected>
+                <ReturnDetailPage />
+              </Protected>
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

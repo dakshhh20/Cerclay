@@ -1,5 +1,6 @@
 package com.mittiandmore.controller;
 
+import com.mittiandmore.config.DualClientSecurityContextRepository;
 import com.mittiandmore.dto.GoogleLoginRequest;
 import com.mittiandmore.dto.LoginRequest;
 import com.mittiandmore.dto.LoginResponse;
@@ -20,10 +21,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.mittiandmore.config.DualClientSecurityContextRepository;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,16 +38,15 @@ public class AuthController {
     private final GoogleAuthService googleAuthService;
 
     private final SecurityContextRepository securityContextRepository =
-            new DualClientSecurityContextRepository().customerRepository();
+        new DualClientSecurityContextRepository().customerRepository();
 
     public AuthController(
-            @Qualifier("customerAuthenticationManager")
-            AuthenticationManager authenticationManager,
-            CustomerRepository customerRepository,
-            CustomerService customerService,
-            CustomerUserDetailsService customerUserDetailsService,
-            GoogleAuthService googleAuthService) {
-
+        @Qualifier("customerAuthenticationManager") AuthenticationManager authenticationManager,
+        CustomerRepository customerRepository,
+        CustomerService customerService,
+        CustomerUserDetailsService customerUserDetailsService,
+        GoogleAuthService googleAuthService
+    ) {
         this.authenticationManager = authenticationManager;
         this.customerRepository = customerRepository;
         this.customerService = customerService;
@@ -59,31 +58,20 @@ public class AuthController {
      * Customer Registration
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(
-            @Valid @RequestBody RegisterRequest request) {
-
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
+            Customer customer = customerService.registerCustomer(request);
 
-            Customer customer =
-                    customerService.registerCustomer(request);
+            LoginResponse response = new LoginResponse(
+                customer.getId(),
+                customer.getName(),
+                customer.getEmail(),
+                customer.getPhone()
+            );
 
-            LoginResponse response =
-                    new LoginResponse(
-                            customer.getId(),
-                            customer.getName(),
-                            customer.getEmail(),
-                            customer.getPhone()
-                    );
-
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(response);
-
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
@@ -92,59 +80,37 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(
-            @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
-
+        @RequestBody LoginRequest request,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse
+    ) {
         try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
 
-            Authentication authentication =
-                    authenticationManager.authenticate(
-                            new UsernamePasswordAuthenticationToken(
-                                    request.getEmail(),
-                                    request.getPassword()
-                            )
-                    );
-
-            SecurityContext context =
-                    SecurityContextHolder.createEmptyContext();
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
 
             context.setAuthentication(authentication);
 
             SecurityContextHolder.setContext(context);
 
-            securityContextRepository.saveContext(
-                    context,
-                    httpRequest,
-                    httpResponse
+            securityContextRepository.saveContext(context, httpRequest, httpResponse);
+
+            Customer customer = customerRepository.findByEmail(request.getEmail()).orElseThrow();
+
+            LoginResponse response = new LoginResponse(
+                customer.getId(),
+                customer.getName(),
+                customer.getEmail(),
+                customer.getPhone()
             );
 
-            Customer customer =
-                    customerRepository.findByEmail(
-                            request.getEmail()
-                    ).orElseThrow();
-
-            LoginResponse response =
-                    new LoginResponse(
-                            customer.getId(),
-                            customer.getName(),
-                            customer.getEmail(),
-                            customer.getPhone()
-                    );
-
             return ResponseEntity.ok(response);
-
         } catch (BadCredentialsException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password");
-
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         } catch (DisabledException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body("Customer account is disabled");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Customer account is disabled");
         }
     }
 
@@ -153,29 +119,21 @@ public class AuthController {
      */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(
-            @Valid @RequestBody GoogleLoginRequest request,
-            HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
+        @Valid @RequestBody GoogleLoginRequest request,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse
+    ) {
+        Customer customer = googleAuthService.authenticate(request.getCredential());
 
-        Customer customer =
-                googleAuthService.authenticate(
-                        request.getCredential()
-                );
+        UserDetails userDetails = customerUserDetailsService.loadUserByUsername(customer.getEmail());
 
-        UserDetails userDetails =
-                customerUserDetailsService.loadUserByUsername(
-                        customer.getEmail()
-                );
+        Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
+            userDetails,
+            null,
+            userDetails.getAuthorities()
+        );
 
-        Authentication authentication =
-                UsernamePasswordAuthenticationToken.authenticated(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-
-        SecurityContext context =
-                SecurityContextHolder.createEmptyContext();
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
 
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
@@ -187,19 +145,14 @@ public class AuthController {
         httpRequest.getSession(true);
         httpRequest.changeSessionId();
 
-        securityContextRepository.saveContext(
-                context,
-                httpRequest,
-                httpResponse
-        );
+        securityContextRepository.saveContext(context, httpRequest, httpResponse);
 
-        LoginResponse response =
-                new LoginResponse(
-                        customer.getId(),
-                        customer.getName(),
-                        customer.getEmail(),
-                        customer.getPhone()
-                );
+        LoginResponse response = new LoginResponse(
+            customer.getId(),
+            customer.getName(),
+            customer.getEmail(),
+            customer.getPhone()
+        );
 
         return ResponseEntity.ok(response);
     }
@@ -208,10 +161,7 @@ public class AuthController {
      * Customer Logout
      */
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(
-            HttpServletRequest request,
-            HttpServletResponse response) {
-
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         SecurityContextHolder.clearContext();
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
@@ -225,36 +175,23 @@ public class AuthController {
      * Get Currently Logged-In Customer
      */
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentCustomer(
-            Authentication authentication) {
-
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Not logged in");
+    public ResponseEntity<?> getCurrentCustomer(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not logged in");
         }
 
-        Customer customer =
-                customerRepository.findByEmail(
-                        authentication.getName()
-                ).orElse(null);
+        Customer customer = customerRepository.findByEmail(authentication.getName()).orElse(null);
 
         if (customer == null) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Customer not found");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Customer not found");
         }
 
-        LoginResponse response =
-                new LoginResponse(
-                        customer.getId(),
-                        customer.getName(),
-                        customer.getEmail(),
-                        customer.getPhone()
-                );
+        LoginResponse response = new LoginResponse(
+            customer.getId(),
+            customer.getName(),
+            customer.getEmail(),
+            customer.getPhone()
+        );
 
         return ResponseEntity.ok(response);
     }

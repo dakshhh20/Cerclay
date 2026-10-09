@@ -4,10 +4,9 @@ import com.mittiandmore.entity.Address;
 import com.mittiandmore.entity.Customer;
 import com.mittiandmore.repository.AddressRepository;
 import com.mittiandmore.repository.CustomerRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 public class AddressService {
@@ -15,10 +14,7 @@ public class AddressService {
     private final AddressRepository addressRepository;
     private final CustomerRepository customerRepository;
 
-    public AddressService(
-            AddressRepository addressRepository,
-            CustomerRepository customerRepository) {
-
+    public AddressService(AddressRepository addressRepository, CustomerRepository customerRepository) {
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
     }
@@ -28,17 +24,12 @@ public class AddressService {
     }
 
     public Address getAddressById(Long id) {
-        return addressRepository.findById(id)
-                .orElse(null);
+        return addressRepository.findById(id).orElse(null);
     }
 
     @Transactional
-    public Address createAddress(
-            Long customerId,
-            Address address) {
-
-        Customer customer = customerRepository.findById(customerId)
-                .orElse(null);
+    public Address createAddress(Long customerId, Address address) {
+        Customer customer = customerRepository.findById(customerId).orElse(null);
 
         if (customer == null) {
             return null;
@@ -54,12 +45,8 @@ public class AddressService {
     }
 
     @Transactional
-    public Address updateAddress(
-            Long id,
-            Address updatedAddress) {
-
-        Address existingAddress = addressRepository.findById(id)
-                .orElse(null);
+    public Address updateAddress(Long id, Address updatedAddress) {
+        Address existingAddress = addressRepository.findById(id).orElse(null);
 
         if (existingAddress == null) {
             return null;
@@ -75,16 +62,11 @@ public class AddressService {
         existingAddress.setAddressType(updatedAddress.getAddressType());
 
         if (Boolean.TRUE.equals(updatedAddress.getDefaultAddress())) {
-
             Long customerId = existingAddress.getCustomer().getId();
 
-            clearExistingDefaultAddress(
-                    customerId,
-                    existingAddress.getId()
-            );
+            clearExistingDefaultAddress(customerId, existingAddress.getId());
 
             existingAddress.setDefaultAddress(true);
-
         } else {
             existingAddress.setDefaultAddress(false);
         }
@@ -94,8 +76,7 @@ public class AddressService {
 
     @Transactional
     public void deleteAddress(Long id) {
-        Address existingAddress = addressRepository.findById(id)
-                .orElse(null);
+        Address existingAddress = addressRepository.findById(id).orElse(null);
 
         if (existingAddress == null) {
             return;
@@ -108,17 +89,11 @@ public class AddressService {
         clearExistingDefaultAddress(customerId, null);
     }
 
-    private void clearExistingDefaultAddress(
-            Long customerId,
-            Long addressBeingUpdated) {
-
-        List<Address> addresses =
-                addressRepository.findByCustomerId(customerId);
+    private void clearExistingDefaultAddress(Long customerId, Long addressBeingUpdated) {
+        List<Address> addresses = addressRepository.findByCustomerId(customerId);
 
         for (Address address : addresses) {
-
-            if (addressBeingUpdated != null
-                    && address.getId().equals(addressBeingUpdated)) {
+            if (addressBeingUpdated != null && address.getId().equals(addressBeingUpdated)) {
                 continue;
             }
 

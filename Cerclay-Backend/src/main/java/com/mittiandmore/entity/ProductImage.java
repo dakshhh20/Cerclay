@@ -2,16 +2,15 @@ package com.mittiandmore.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "product_images",
-        indexes = {
-                @Index(name = "idx_product_images_product", columnList = "product_id"),
-                @Index(name = "idx_product_images_order", columnList = "product_id, display_order")
-        }
+    name = "product_images",
+    indexes = {
+        @Index(name = "idx_product_images_product", columnList = "product_id"),
+        @Index(name = "idx_product_images_order", columnList = "product_id, display_order"),
+    }
 )
 public class ProductImage {
 
@@ -36,8 +35,7 @@ public class ProductImage {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public ProductImage() {
-    }
+    public ProductImage() {}
 
     @PrePersist
     protected void onCreate() {

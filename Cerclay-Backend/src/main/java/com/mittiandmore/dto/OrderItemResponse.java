@@ -19,8 +19,7 @@ public class OrderItemResponse {
     private BigDecimal gst;
     private BigDecimal total;
 
-    public OrderItemResponse() {
-    }
+    public OrderItemResponse() {}
 
     public Long getId() {
         return id;
@@ -54,8 +53,13 @@ public class OrderItemResponse {
         this.productSku = productSku;
     }
 
-    public Integer getPackSize() { return packSize; }
-    public void setPackSize(Integer packSize) { this.packSize = packSize; }
+    public Integer getPackSize() {
+        return packSize;
+    }
+
+    public void setPackSize(Integer packSize) {
+        this.packSize = packSize;
+    }
 
     public Integer getQuantity() {
         return quantity;

@@ -12,18 +12,17 @@ public class CustomerResponse {
     private Boolean emailVerified;
     private Boolean phoneVerified;
 
-    public CustomerResponse() {
-    }
+    public CustomerResponse() {}
 
     public CustomerResponse(
-            Long id,
-            String name,
-            String email,
-            String phone,
-            Boolean active,
-            Boolean emailVerified,
-            Boolean phoneVerified) {
-
+        Long id,
+        String name,
+        String email,
+        String phone,
+        Boolean active,
+        Boolean emailVerified,
+        Boolean phoneVerified
+    ) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -34,15 +33,14 @@ public class CustomerResponse {
     }
 
     public static CustomerResponse fromEntity(Customer customer) {
-
         return new CustomerResponse(
-                customer.getId(),
-                customer.getName(),
-                customer.getEmail(),
-                customer.getPhone(),
-                customer.getActive(),
-                customer.getEmailVerified(),
-                customer.getPhoneVerified()
+            customer.getId(),
+            customer.getName(),
+            customer.getEmail(),
+            customer.getPhone(),
+            customer.getActive(),
+            customer.getEmailVerified(),
+            customer.getPhoneVerified()
         );
     }
 

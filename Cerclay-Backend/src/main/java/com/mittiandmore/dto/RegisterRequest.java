@@ -15,21 +15,14 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Phone is required")
-    @Pattern(
-            regexp = "^[0-9]{10}$",
-            message = "Phone must be exactly 10 digits"
-    )
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be exactly 10 digits")
     private String phone;
 
     @NotBlank(message = "Password is required")
-    @Size(
-            min = 8,
-            message = "Password must be at least 8 characters"
-    )
+    @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    public RegisterRequest() {
-    }
+    public RegisterRequest() {}
 
     public String getName() {
         return name;

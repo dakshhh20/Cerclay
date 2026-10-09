@@ -12,9 +12,7 @@ public class ShadowfaxTrackingController {
 
     private final ShadowfaxTrackingService shadowfaxTrackingService;
 
-    public ShadowfaxTrackingController(
-            ShadowfaxTrackingService shadowfaxTrackingService
-    ) {
+    public ShadowfaxTrackingController(ShadowfaxTrackingService shadowfaxTrackingService) {
         this.shadowfaxTrackingService = shadowfaxTrackingService;
     }
 
@@ -23,11 +21,8 @@ public class ShadowfaxTrackingController {
      * after webhooks are added later.
      */
     @PostMapping("/shipments/{shipmentId}/sync")
-    public ResponseEntity<ShipmentResponse> syncShipment(
-            @PathVariable Long shipmentId
-    ) {
-        Shipment shipment =
-                shadowfaxTrackingService.syncShipmentTracking(shipmentId);
+    public ResponseEntity<ShipmentResponse> syncShipment(@PathVariable Long shipmentId) {
+        Shipment shipment = shadowfaxTrackingService.syncShipmentTracking(shipmentId);
 
         return ResponseEntity.ok(toResponse(shipment));
     }

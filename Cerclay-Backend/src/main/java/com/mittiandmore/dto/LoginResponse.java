@@ -7,15 +7,9 @@ public class LoginResponse {
     private String email;
     private String phone;
 
-    public LoginResponse() {
-    }
+    public LoginResponse() {}
 
-    public LoginResponse(
-            Long id,
-            String name,
-            String email,
-            String phone) {
-
+    public LoginResponse(Long id, String name, String email, String phone) {
         this.id = id;
         this.name = name;
         this.email = email;
