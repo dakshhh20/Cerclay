@@ -13,8 +13,7 @@ public class SendOtpRequest {
     @NotBlank(message = "OTP purpose is required")
     private String purpose;
 
-    public SendOtpRequest() {
-    }
+    public SendOtpRequest() {}
 
     public String getDestination() {
         return destination;

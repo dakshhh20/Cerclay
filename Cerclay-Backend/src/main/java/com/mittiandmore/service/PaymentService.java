@@ -13,48 +13,27 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
 
-    public PaymentService(
-            PaymentRepository paymentRepository,
-            OrderRepository orderRepository
-    ) {
+    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
     }
 
     @Transactional
-    public Payment createPaymentRecord(
-            Long orderId,
-            String razorpayOrderId
-    ) {
+    public Payment createPaymentRecord(Long orderId, String razorpayOrderId) {
+        Order order = orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Order not found"
-                        )
-                );
-
-        if (!"RAZORPAY".equalsIgnoreCase(
-                order.getPaymentMethod()
-        )) {
-
-            throw new IllegalStateException(
-                    "Payment record can only be created for Razorpay orders"
-            );
+        if (!"RAZORPAY".equalsIgnoreCase(order.getPaymentMethod())) {
+            throw new IllegalStateException("Payment record can only be created for Razorpay orders");
         }
 
         if (paymentRepository.findByOrderId(orderId).isPresent()) {
-            throw new IllegalStateException(
-                    "Payment already exists for this order"
-            );
+            throw new IllegalStateException("Payment already exists for this order");
         }
 
-        if (razorpayOrderId == null
-                || razorpayOrderId.isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Razorpay order ID is required"
-            );
+        if (razorpayOrderId == null || razorpayOrderId.isBlank()) {
+            throw new IllegalArgumentException("Razorpay order ID is required");
         }
 
         Payment payment = new Payment();

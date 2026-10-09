@@ -10,5 +10,5 @@ public enum NotificationEventType {
     RETURN_APPROVED,
     RETURN_REJECTED,
     RETURN_RECEIVED,
-    REFUND_PROCESSED
+    REFUND_PROCESSED,
 }

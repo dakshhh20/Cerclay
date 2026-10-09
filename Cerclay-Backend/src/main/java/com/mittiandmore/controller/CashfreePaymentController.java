@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/payments/cashfree")
 public class CashfreePaymentController {
+
     private final CashfreePaymentService service;
     private final CustomerRepository customerRepository;
 
@@ -20,7 +21,10 @@ public class CashfreePaymentController {
     }
 
     @PostMapping("/orders/{orderId}")
-    public ResponseEntity<CashfreeOrderResponse> createOrder(@PathVariable Long orderId, Authentication authentication) {
+    public ResponseEntity<CashfreeOrderResponse> createOrder(
+        @PathVariable Long orderId,
+        Authentication authentication
+    ) {
         return ResponseEntity.ok(service.createGatewayOrder(customerId(authentication), orderId));
     }
 
@@ -31,17 +35,19 @@ public class CashfreePaymentController {
 
     @PostMapping("/webhook")
     public ResponseEntity<Void> webhook(
-            @RequestHeader(value = "x-webhook-signature", required = false) String signature,
-            @RequestHeader(value = "x-webhook-timestamp", required = false) String timestamp,
-            @RequestHeader(value = "x-webhook-event-id", required = false) String eventId,
-            @RequestBody String payload) {
+        @RequestHeader(value = "x-webhook-signature", required = false) String signature,
+        @RequestHeader(value = "x-webhook-timestamp", required = false) String timestamp,
+        @RequestHeader(value = "x-webhook-event-id", required = false) String eventId,
+        @RequestBody String payload
+    ) {
         service.handleWebhook(payload, signature, timestamp, eventId);
         return ResponseEntity.ok().build();
     }
 
     private Long customerId(Authentication authentication) {
-        Customer customer = customerRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new IllegalStateException("Authenticated customer not found"));
+        Customer customer = customerRepository
+            .findByEmail(authentication.getName())
+            .orElseThrow(() -> new IllegalStateException("Authenticated customer not found"));
         return customer.getId();
     }
 }

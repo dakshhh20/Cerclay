@@ -14,53 +14,38 @@ public class StoreSettingsController {
 
     private final StoreSettingsService storeSettingsService;
 
-    public StoreSettingsController(
-            StoreSettingsService storeSettingsService) {
+    public StoreSettingsController(StoreSettingsService storeSettingsService) {
         this.storeSettingsService = storeSettingsService;
     }
 
     @GetMapping
     public ResponseEntity<StoreSettingsResponse> getSettings() {
-
-        StoreSettings settings =
-                storeSettingsService.getSettings();
+        StoreSettings settings = storeSettingsService.getSettings();
 
         return ResponseEntity.ok(toResponse(settings));
     }
 
     @PutMapping
-    public ResponseEntity<StoreSettingsResponse> updateSettings(
-            @Valid @RequestBody StoreSettingsRequest request) {
-
-        StoreSettings settings =
-                storeSettingsService.updateSettings(
-                        request.getGstRate(),
-                        request.getShippingCharge(),
-                        request.getFreeShippingThreshold(),
-                        request.getMinimumOrderValue(),
-                        request.getWhatsappNumber()
-                );
+    public ResponseEntity<StoreSettingsResponse> updateSettings(@Valid @RequestBody StoreSettingsRequest request) {
+        StoreSettings settings = storeSettingsService.updateSettings(
+            request.getGstRate(),
+            request.getShippingCharge(),
+            request.getFreeShippingThreshold(),
+            request.getMinimumOrderValue(),
+            request.getWhatsappNumber()
+        );
 
         return ResponseEntity.ok(toResponse(settings));
     }
 
-    private StoreSettingsResponse toResponse(
-            StoreSettings settings) {
-
-        StoreSettingsResponse response =
-                new StoreSettingsResponse();
+    private StoreSettingsResponse toResponse(StoreSettings settings) {
+        StoreSettingsResponse response = new StoreSettingsResponse();
 
         response.setId(settings.getId());
         response.setGstRate(settings.getGstRate());
-        response.setShippingCharge(
-                settings.getShippingCharge()
-        );
-        response.setFreeShippingThreshold(
-                settings.getFreeShippingThreshold()
-        );
-        response.setMinimumOrderValue(
-                settings.getMinimumOrderValue()
-        );
+        response.setShippingCharge(settings.getShippingCharge());
+        response.setFreeShippingThreshold(settings.getFreeShippingThreshold());
+        response.setMinimumOrderValue(settings.getMinimumOrderValue());
         response.setWhatsappNumber(settings.getWhatsappNumber());
         response.setUpdatedAt(settings.getUpdatedAt());
 

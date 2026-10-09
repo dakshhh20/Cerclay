@@ -10,19 +10,11 @@ import org.springframework.web.client.RestClient;
 public class ShadowfaxConfig {
 
     @Bean
-    public RestClient shadowfaxRestClient(
-            ShadowfaxProperties properties
-    ) {
+    public RestClient shadowfaxRestClient(ShadowfaxProperties properties) {
         return RestClient.builder()
-                .baseUrl(properties.getBaseUrl())
-                .defaultHeader(
-                        "Authorization",
-                        "Token " + properties.getApiToken()
-                )
-                .defaultHeader(
-                        "Content-Type",
-                        "application/json"
-                )
-                .build();
+            .baseUrl(properties.getBaseUrl())
+            .defaultHeader("Authorization", "Token " + properties.getApiToken())
+            .defaultHeader("Content-Type", "application/json")
+            .build();
     }
 }

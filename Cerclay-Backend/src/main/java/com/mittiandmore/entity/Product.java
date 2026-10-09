@@ -1,7 +1,6 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,27 +8,13 @@ import java.util.List;
 
 @Entity
 @Table(
-        name = "products",
-        indexes = {
-                @Index(
-                        name = "idx_products_category",
-                        columnList = "category"
-                ),
-                @Index(
-                        name = "idx_products_active",
-                        columnList = "active"
-                ),
-                @Index(
-                        name = "idx_products_slug",
-                        columnList = "slug",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_products_sku",
-                        columnList = "sku",
-                        unique = true
-                )
-        }
+    name = "products",
+    indexes = {
+        @Index(name = "idx_products_category", columnList = "category"),
+        @Index(name = "idx_products_active", columnList = "active"),
+        @Index(name = "idx_products_slug", columnList = "slug", unique = true),
+        @Index(name = "idx_products_sku", columnList = "sku", unique = true),
+    }
 )
 public class Product {
 
@@ -97,11 +82,7 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String image;
 
-    @OneToMany(
-            mappedBy = "product",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     private List<ProductImage> images = new ArrayList<>();
 
@@ -124,12 +105,10 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public Product() {
-    }
+    public Product() {}
 
     @PrePersist
     protected void onCreate() {
-
         LocalDateTime now = LocalDateTime.now();
 
         createdAt = now;
@@ -138,7 +117,6 @@ public class Product {
 
     @PreUpdate
     protected void onUpdate() {
-
         updatedAt = LocalDateTime.now();
     }
 
@@ -234,18 +212,53 @@ public class Product {
         this.featured = featured;
     }
 
-    public Boolean getSetOf2Enabled() { return setOf2Enabled; }
-    public void setSetOf2Enabled(Boolean setOf2Enabled) { this.setOf2Enabled = setOf2Enabled; }
-    public BigDecimal getSetOf2Price() { return setOf2Price; }
-    public void setSetOf2Price(BigDecimal setOf2Price) { this.setOf2Price = setOf2Price; }
-    public BigDecimal getSetOf2Mrp() { return setOf2Mrp; }
-    public void setSetOf2Mrp(BigDecimal setOf2Mrp) { this.setOf2Mrp = setOf2Mrp; }
-    public String getColorGroup() { return colorGroup; }
-    public void setColorGroup(String colorGroup) { this.colorGroup = colorGroup; }
-    public String getColorName() { return colorName; }
-    public void setColorName(String colorName) { this.colorName = colorName; }
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String colorHex) { this.colorHex = colorHex; }
+    public Boolean getSetOf2Enabled() {
+        return setOf2Enabled;
+    }
+
+    public void setSetOf2Enabled(Boolean setOf2Enabled) {
+        this.setOf2Enabled = setOf2Enabled;
+    }
+
+    public BigDecimal getSetOf2Price() {
+        return setOf2Price;
+    }
+
+    public void setSetOf2Price(BigDecimal setOf2Price) {
+        this.setOf2Price = setOf2Price;
+    }
+
+    public BigDecimal getSetOf2Mrp() {
+        return setOf2Mrp;
+    }
+
+    public void setSetOf2Mrp(BigDecimal setOf2Mrp) {
+        this.setOf2Mrp = setOf2Mrp;
+    }
+
+    public String getColorGroup() {
+        return colorGroup;
+    }
+
+    public void setColorGroup(String colorGroup) {
+        this.colorGroup = colorGroup;
+    }
+
+    public String getColorName() {
+        return colorName;
+    }
+
+    public void setColorName(String colorName) {
+        this.colorName = colorName;
+    }
+
+    public String getColorHex() {
+        return colorHex;
+    }
+
+    public void setColorHex(String colorHex) {
+        this.colorHex = colorHex;
+    }
 
     public void setActive(Boolean active) {
         this.active = active;

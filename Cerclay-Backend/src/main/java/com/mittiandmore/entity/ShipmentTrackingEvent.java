@@ -1,20 +1,16 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "shipment_tracking_events",
-        indexes = {
-                @Index(name = "idx_tracking_events_shipment_event_at", columnList = "shipment_id,event_at"),
-                @Index(name = "idx_tracking_events_status", columnList = "shipment_status")
-        },
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_shipment_tracking_event_key",
-                columnNames = "event_key"
-        )
+    name = "shipment_tracking_events",
+    indexes = {
+        @Index(name = "idx_tracking_events_shipment_event_at", columnList = "shipment_id,event_at"),
+        @Index(name = "idx_tracking_events_status", columnList = "shipment_status"),
+    },
+    uniqueConstraints = @UniqueConstraint(name = "uk_shipment_tracking_event_key", columnNames = "event_key")
 )
 public class ShipmentTrackingEvent {
 
@@ -58,24 +54,83 @@ public class ShipmentTrackingEvent {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public Shipment getShipment() { return shipment; }
-    public void setShipment(Shipment shipment) { this.shipment = shipment; }
-    public String getEventKey() { return eventKey; }
-    public void setEventKey(String eventKey) { this.eventKey = eventKey; }
-    public String getExternalStatus() { return externalStatus; }
-    public void setExternalStatus(String externalStatus) { this.externalStatus = externalStatus; }
-    public String getExternalStatusDisplay() { return externalStatusDisplay; }
-    public void setExternalStatusDisplay(String externalStatusDisplay) { this.externalStatusDisplay = externalStatusDisplay; }
-    public String getShipmentStatus() { return shipmentStatus; }
-    public void setShipmentStatus(String shipmentStatus) { this.shipmentStatus = shipmentStatus; }
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-    public String getRemarks() { return remarks; }
-    public void setRemarks(String remarks) { this.remarks = remarks; }
-    public LocalDateTime getEventAt() { return eventAt; }
-    public void setEventAt(LocalDateTime eventAt) { this.eventAt = eventAt; }
-    public String getSource() { return source; }
-    public void setSource(String source) { this.source = source; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public Shipment getShipment() {
+        return shipment;
+    }
+
+    public void setShipment(Shipment shipment) {
+        this.shipment = shipment;
+    }
+
+    public String getEventKey() {
+        return eventKey;
+    }
+
+    public void setEventKey(String eventKey) {
+        this.eventKey = eventKey;
+    }
+
+    public String getExternalStatus() {
+        return externalStatus;
+    }
+
+    public void setExternalStatus(String externalStatus) {
+        this.externalStatus = externalStatus;
+    }
+
+    public String getExternalStatusDisplay() {
+        return externalStatusDisplay;
+    }
+
+    public void setExternalStatusDisplay(String externalStatusDisplay) {
+        this.externalStatusDisplay = externalStatusDisplay;
+    }
+
+    public String getShipmentStatus() {
+        return shipmentStatus;
+    }
+
+    public void setShipmentStatus(String shipmentStatus) {
+        this.shipmentStatus = shipmentStatus;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
+    public LocalDateTime getEventAt() {
+        return eventAt;
+    }
+
+    public void setEventAt(LocalDateTime eventAt) {
+        this.eventAt = eventAt;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

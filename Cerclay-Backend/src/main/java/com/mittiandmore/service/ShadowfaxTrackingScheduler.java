@@ -2,12 +2,11 @@ package com.mittiandmore.service;
 
 import com.mittiandmore.entity.Shipment;
 import com.mittiandmore.repository.ShipmentRepository;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class ShadowfaxTrackingScheduler {
@@ -17,9 +16,7 @@ public class ShadowfaxTrackingScheduler {
     private final ShipmentRepository shipmentRepository;
     private final ShadowfaxTrackingService trackingService;
 
-    public ShadowfaxTrackingScheduler(
-            ShipmentRepository shipmentRepository,
-            ShadowfaxTrackingService trackingService) {
+    public ShadowfaxTrackingScheduler(ShipmentRepository shipmentRepository, ShadowfaxTrackingService trackingService) {
         this.shipmentRepository = shipmentRepository;
         this.trackingService = trackingService;
     }
@@ -31,18 +28,17 @@ public class ShadowfaxTrackingScheduler {
      */
     @Scheduled(fixedDelayString = "${shadowfax.tracking.poll-ms:900000}")
     public void syncActiveShipments() {
-        List<Shipment> shipments = shipmentRepository
-                .findTop100ByCourierNameIgnoreCaseAndShipmentStatusInOrderByLastSyncedAtAsc(
-                        "Shadowfax",
-                        List.of("CREATED", "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERY_ATTEMPTED")
-                );
+        List<Shipment> shipments =
+            shipmentRepository.findTop100ByCourierNameIgnoreCaseAndShipmentStatusInOrderByLastSyncedAtAsc(
+                "Shadowfax",
+                List.of("CREATED", "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERY_ATTEMPTED")
+            );
 
         for (Shipment shipment : shipments) {
             try {
                 trackingService.syncShipmentTracking(shipment.getId());
             } catch (Exception ex) {
-                log.warn("Shadowfax scheduled sync failed for shipment {}: {}",
-                        shipment.getId(), ex.getMessage());
+                log.warn("Shadowfax scheduled sync failed for shipment {}: {}", shipment.getId(), ex.getMessage());
             }
         }
     }

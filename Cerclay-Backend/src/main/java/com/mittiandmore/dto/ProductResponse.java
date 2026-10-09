@@ -31,8 +31,7 @@ public class ProductResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ProductResponse() {
-    }
+    public ProductResponse() {}
 
     public Long getId() {
         return id;
@@ -110,21 +109,61 @@ public class ProductResponse {
         return active;
     }
 
-    public Boolean getFeatured() { return featured; }
-    public void setFeatured(Boolean value) { this.featured = value; }
+    public Boolean getFeatured() {
+        return featured;
+    }
 
-    public Boolean getSetOf2Enabled() { return setOf2Enabled; }
-    public void setSetOf2Enabled(Boolean value) { this.setOf2Enabled = value; }
-    public BigDecimal getSetOf2Price() { return setOf2Price; }
-    public void setSetOf2Price(BigDecimal value) { this.setOf2Price = value; }
-    public BigDecimal getSetOf2Mrp() { return setOf2Mrp; }
-    public void setSetOf2Mrp(BigDecimal value) { this.setOf2Mrp = value; }
-    public String getColorGroup() { return colorGroup; }
-    public void setColorGroup(String value) { this.colorGroup = value; }
-    public String getColorName() { return colorName; }
-    public void setColorName(String value) { this.colorName = value; }
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String value) { this.colorHex = value; }
+    public void setFeatured(Boolean value) {
+        this.featured = value;
+    }
+
+    public Boolean getSetOf2Enabled() {
+        return setOf2Enabled;
+    }
+
+    public void setSetOf2Enabled(Boolean value) {
+        this.setOf2Enabled = value;
+    }
+
+    public BigDecimal getSetOf2Price() {
+        return setOf2Price;
+    }
+
+    public void setSetOf2Price(BigDecimal value) {
+        this.setOf2Price = value;
+    }
+
+    public BigDecimal getSetOf2Mrp() {
+        return setOf2Mrp;
+    }
+
+    public void setSetOf2Mrp(BigDecimal value) {
+        this.setOf2Mrp = value;
+    }
+
+    public String getColorGroup() {
+        return colorGroup;
+    }
+
+    public void setColorGroup(String value) {
+        this.colorGroup = value;
+    }
+
+    public String getColorName() {
+        return colorName;
+    }
+
+    public void setColorName(String value) {
+        this.colorName = value;
+    }
+
+    public String getColorHex() {
+        return colorHex;
+    }
+
+    public void setColorHex(String value) {
+        this.colorHex = value;
+    }
 
     public void setActive(Boolean active) {
         this.active = active;

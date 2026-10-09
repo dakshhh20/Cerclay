@@ -16,14 +16,10 @@ public class CustomerUpdateRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(
-            regexp = "^[6-9][0-9]{9}$",
-            message = "Invalid Indian phone number"
-    )
+    @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Invalid Indian phone number")
     private String phone;
 
-    public CustomerUpdateRequest() {
-    }
+    public CustomerUpdateRequest() {}
 
     public String getName() {
         return name;

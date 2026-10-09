@@ -1,7 +1,6 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -49,12 +48,10 @@ public class CustomerOtpVerification {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public CustomerOtpVerification() {
-    }
+    public CustomerOtpVerification() {}
 
     @PrePersist
     protected void onCreate() {
-
         LocalDateTime now = LocalDateTime.now();
 
         if (attemptCount == null) {

@@ -4,19 +4,18 @@ import com.mittiandmore.config.ShadowfaxProperties;
 import com.mittiandmore.entity.Order;
 import com.mittiandmore.entity.OrderItem;
 import com.mittiandmore.entity.Shipment;
+import com.mittiandmore.entity.ShipmentTrackingEvent;
 import com.mittiandmore.exception.ApiException;
 import com.mittiandmore.repository.OrderRepository;
 import com.mittiandmore.repository.ShipmentRepository;
 import com.mittiandmore.repository.ShipmentTrackingEventRepository;
-import com.mittiandmore.entity.ShipmentTrackingEvent;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ShadowfaxOrderService {
@@ -32,12 +31,12 @@ public class ShadowfaxOrderService {
     private final ShadowfaxTrackingService shadowfaxTrackingService;
 
     public ShadowfaxOrderService(
-            OrderRepository orderRepository,
-            ShipmentRepository shipmentRepository,
-            ShadowfaxClient shadowfaxClient,
-            ShadowfaxProperties properties,
-            ShipmentTrackingEventRepository trackingEventRepository,
-            ShadowfaxTrackingService shadowfaxTrackingService
+        OrderRepository orderRepository,
+        ShipmentRepository shipmentRepository,
+        ShadowfaxClient shadowfaxClient,
+        ShadowfaxProperties properties,
+        ShipmentTrackingEventRepository trackingEventRepository,
+        ShadowfaxTrackingService shadowfaxTrackingService
     ) {
         this.orderRepository = orderRepository;
         this.shipmentRepository = shipmentRepository;
@@ -55,47 +54,38 @@ public class ShadowfaxOrderService {
     @Transactional
     public Shipment assignManualShadowfaxAwb(Long orderId, String awb) {
         if (orderId == null) {
-            throw new ApiException(
-                    "ORDER_ID_REQUIRED",
-                    "Order ID is required",
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("ORDER_ID_REQUIRED", "Order ID is required", HttpStatus.BAD_REQUEST);
         }
 
         if (awb == null || awb.isBlank()) {
-            throw new ApiException(
-                    "SHADOWFAX_AWB_REQUIRED",
-                    "Shadowfax AWB is required",
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("SHADOWFAX_AWB_REQUIRED", "Shadowfax AWB is required", HttpStatus.BAD_REQUEST);
         }
 
         String normalizedAwb = awb.trim();
         if (normalizedAwb.length() > 100) {
             throw new ApiException(
-                    "SHADOWFAX_AWB_TOO_LONG",
-                    "Shadowfax AWB must be at most 100 characters",
-                    HttpStatus.BAD_REQUEST
+                "SHADOWFAX_AWB_TOO_LONG",
+                "Shadowfax AWB must be at most 100 characters",
+                HttpStatus.BAD_REQUEST
             );
         }
 
-        Order order = orderRepository.findByIdForUpdate(orderId)
-                .orElseThrow(() -> new ApiException(
-                        "ORDER_NOT_FOUND",
-                        "Order not found",
-                        HttpStatus.NOT_FOUND
-                ));
+        Order order = orderRepository
+            .findByIdForUpdate(orderId)
+            .orElseThrow(() -> new ApiException("ORDER_NOT_FOUND", "Order not found", HttpStatus.NOT_FOUND));
 
         String orderStatus = order.getOrderStatus();
         if (orderStatus != null) {
             String normalizedStatus = orderStatus.trim().toUpperCase(Locale.ROOT);
-            if ("CANCELLED".equals(normalizedStatus)
-                    || "CANCELED".equals(normalizedStatus)
-                    || "DELIVERED".equals(normalizedStatus)) {
+            if (
+                "CANCELLED".equals(normalizedStatus) ||
+                "CANCELED".equals(normalizedStatus) ||
+                "DELIVERED".equals(normalizedStatus)
+            ) {
                 throw new ApiException(
-                        "ORDER_NOT_ELIGIBLE_FOR_SHIPMENT",
-                        "Order is not eligible for a Shadowfax shipment",
-                        HttpStatus.CONFLICT
+                    "ORDER_NOT_ELIGIBLE_FOR_SHIPMENT",
+                    "Order is not eligible for a Shadowfax shipment",
+                    HttpStatus.CONFLICT
                 );
             }
         }
@@ -103,12 +93,11 @@ public class ShadowfaxOrderService {
         Shipment existingByAwb = shipmentRepository.findByTrackingNumber(normalizedAwb).orElse(null);
         Shipment shipment = shipmentRepository.findByOrderId(orderId).orElse(null);
 
-        if (existingByAwb != null
-                && (shipment == null || !existingByAwb.getId().equals(shipment.getId()))) {
+        if (existingByAwb != null && (shipment == null || !existingByAwb.getId().equals(shipment.getId()))) {
             throw new ApiException(
-                    "TRACKING_NUMBER_ALREADY_ASSIGNED",
-                    "This Shadowfax AWB is already assigned to another order",
-                    HttpStatus.CONFLICT
+                "TRACKING_NUMBER_ALREADY_ASSIGNED",
+                "This Shadowfax AWB is already assigned to another order",
+                HttpStatus.CONFLICT
             );
         }
 
@@ -116,13 +105,15 @@ public class ShadowfaxOrderService {
             shipment = new Shipment();
             shipment.setOrder(order);
             shipment.setShipmentStatus("CREATED");
-        } else if (shipment.getTrackingNumber() != null
-                && !shipment.getTrackingNumber().isBlank()
-                && !normalizedAwb.equalsIgnoreCase(shipment.getTrackingNumber().trim())) {
+        } else if (
+            shipment.getTrackingNumber() != null &&
+            !shipment.getTrackingNumber().isBlank() &&
+            !normalizedAwb.equalsIgnoreCase(shipment.getTrackingNumber().trim())
+        ) {
             throw new ApiException(
-                    "TRACKING_NUMBER_ALREADY_ASSIGNED",
-                    "A different tracking number is already assigned to this order",
-                    HttpStatus.CONFLICT
+                "TRACKING_NUMBER_ALREADY_ASSIGNED",
+                "A different tracking number is already assigned to this order",
+                HttpStatus.CONFLICT
             );
         }
 
@@ -166,13 +157,8 @@ public class ShadowfaxOrderService {
 
     @Transactional
     public Shipment createShipmentForOrder(Long orderId) {
-
         if (orderId == null) {
-            throw new ApiException(
-                    "ORDER_ID_REQUIRED",
-                    "Order ID is required",
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("ORDER_ID_REQUIRED", "Order ID is required", HttpStatus.BAD_REQUEST);
         }
 
         /*
@@ -181,28 +167,19 @@ public class ShadowfaxOrderService {
          * This prevents two simultaneous requests from both creating
          * a Shadowfax shipment for the same order.
          */
-        Order order =
-                orderRepository.findByIdForUpdate(orderId)
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        "ORDER_NOT_FOUND",
-                                        "Order not found",
-                                        HttpStatus.NOT_FOUND
-                                )
-                        );
+        Order order = orderRepository
+            .findByIdForUpdate(orderId)
+            .orElseThrow(() -> new ApiException("ORDER_NOT_FOUND", "Order not found", HttpStatus.NOT_FOUND));
 
         /*
          * Never create another external shipment if one already
          * exists locally.
          */
-        if (shipmentRepository
-                .findByOrderId(orderId)
-                .isPresent()) {
-
+        if (shipmentRepository.findByOrderId(orderId).isPresent()) {
             throw new ApiException(
-                    "SHIPMENT_ALREADY_EXISTS",
-                    "Shipment already exists for this order",
-                    HttpStatus.CONFLICT
+                "SHIPMENT_ALREADY_EXISTS",
+                "Shipment already exists for this order",
+                HttpStatus.CONFLICT
             );
         }
 
@@ -210,38 +187,26 @@ public class ShadowfaxOrderService {
 
         validateOrderForShipment(order);
 
-        if (order.getItems() == null
-                || order.getItems().isEmpty()) {
-
-            throw new ApiException(
-                    "ORDER_HAS_NO_ITEMS",
-                    "Order has no items",
-                    HttpStatus.BAD_REQUEST
-            );
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new ApiException("ORDER_HAS_NO_ITEMS", "Order has no items", HttpStatus.BAD_REQUEST);
         }
 
         BigDecimal productValue = BigDecimal.ZERO;
 
-        List<ShadowfaxClient.ProductDetails> productDetails =
-                new ArrayList<>();
+        List<ShadowfaxClient.ProductDetails> productDetails = new ArrayList<>();
 
         for (OrderItem item : order.getItems()) {
-
             validateOrderItem(item);
 
-            BigDecimal quantity =
-                    BigDecimal.valueOf(item.getQuantity() * Math.max(1, item.getPackSize()));
+            BigDecimal quantity = BigDecimal.valueOf(item.getQuantity() * Math.max(1, item.getPackSize()));
 
-            BigDecimal itemValue =
-                    item.getUnitPrice()
-                            .multiply(BigDecimal.valueOf(item.getQuantity()));
+            BigDecimal itemValue = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
             /*
              * Shadowfax product_value is the total SKU value
              * excluding tax.
              */
-            productValue =
-                    productValue.add(itemValue);
+            productValue = productValue.add(itemValue);
 
             /*
              * The Shadowfax API documentation makes the
@@ -254,36 +219,35 @@ public class ShadowfaxOrderService {
             ShadowfaxClient.Taxes taxes = null;
 
             productDetails.add(
-                    new ShadowfaxClient.ProductDetails(
+                new ShadowfaxClient.ProductDetails(
+                    null,
 
-                            null,
+                    order.getOrderNumber(),
 
-                            order.getOrderNumber(),
+                    item.getProductName(),
 
-                            item.getProductName(),
+                    item.getProductSku(),
 
-                            item.getProductSku(),
+                    "GENERAL",
 
-                            "GENERAL",
+                    /*
+                     * Shadowfax product price is the
+                     * product/SKU price.
+                     *
+                     * Quantity is sent separately below.
+                     */
+                    item.getUnitPrice(),
 
-                            /*
-                             * Shadowfax product price is the
-                             * product/SKU price.
-                             *
-                             * Quantity is sent separately below.
-                             */
-                            item.getUnitPrice(),
+                    null,
 
-                            null,
+                    taxes,
 
-                            taxes,
-
-                            new ShadowfaxClient.AdditionalDetails(
-                                    "False",
-                                    null,
-                                    item.getQuantity() * Math.max(1, item.getPackSize())
-                            )
+                    new ShadowfaxClient.AdditionalDetails(
+                        "False",
+                        null,
+                        item.getQuantity() * Math.max(1, item.getPackSize())
                     )
+                )
             );
         }
 
@@ -293,178 +257,146 @@ public class ShadowfaxOrderService {
          *
          * We NEVER infer COD/Prepaid from payment_status alone.
          */
-        String paymentMode =
-                determinePaymentMode(order);
+        String paymentMode = determinePaymentMode(order);
 
-        BigDecimal codAmount =
-                "COD".equals(paymentMode)
-                        ? order.getTotal()
-                        : BigDecimal.ZERO;
+        BigDecimal codAmount = "COD".equals(paymentMode) ? order.getTotal() : BigDecimal.ZERO;
 
-        ShadowfaxClient.OrderDetails orderDetails =
-                new ShadowfaxClient.OrderDetails(
+        ShadowfaxClient.OrderDetails orderDetails = new ShadowfaxClient.OrderDetails(
+            /*
+             * Stable order identifier from our system.
+             */
+            order.getOrderNumber(),
 
-                        /*
-                         * Stable order identifier from our system.
-                         */
-                        order.getOrderNumber(),
+            /*
+             * AWB intentionally omitted.
+             *
+             * Shadowfax will assign the AWB.
+             */
+            null,
 
-                        /*
-                         * AWB intentionally omitted.
-                         *
-                         * Shadowfax will assign the AWB.
-                         */
-                        null,
+            /*
+             * Weight is not currently stored in our
+             * order model.
+             *
+             * Shadowfax documentation allows these
+             * fields to be omitted/defaulted.
+             */
+            null,
 
-                        /*
-                         * Weight is not currently stored in our
-                         * order model.
-                         *
-                         * Shadowfax documentation allows these
-                         * fields to be omitted/defaulted.
-                         */
-                        null,
+            null,
 
-                        null,
+            productValue,
 
-                        productValue,
+            codAmount,
 
-                        codAmount,
+            paymentMode,
 
-                        paymentMode,
+            null,
 
-                        null,
+            order.getTotal(),
 
-                        order.getTotal(),
+            null,
 
-                        null,
+            null,
 
-                        null,
+            "regular"
+        );
 
-                        "regular"
-                );
+        ShadowfaxClient.CustomerDetails customerDetails = new ShadowfaxClient.CustomerDetails(
+            order.getAddressName(),
 
-        ShadowfaxClient.CustomerDetails customerDetails =
-                new ShadowfaxClient.CustomerDetails(
+            order.getAddressPhone(),
 
-                        order.getAddressName(),
+            null,
 
-                        order.getAddressPhone(),
+            order.getAddressLine1(),
 
-                        null,
+            order.getAddressLine2(),
 
-                        order.getAddressLine1(),
+            order.getAddressCity(),
 
-                        order.getAddressLine2(),
+            order.getAddressState(),
 
-                        order.getAddressCity(),
+            parsePincode(order.getAddressPincode(), "CUSTOMER_ADDRESS"),
 
-                        order.getAddressState(),
+            null,
 
-                        parsePincode(
-                                order.getAddressPincode(),
-                                "CUSTOMER_ADDRESS"
-                        ),
+            null
+        );
 
-                        null,
+        ShadowfaxClient.PickupDetails pickupDetails = new ShadowfaxClient.PickupDetails(
+            properties.getPickupName(),
 
-                        null
-                );
+            properties.getPickupContact(),
 
-        ShadowfaxClient.PickupDetails pickupDetails =
-                new ShadowfaxClient.PickupDetails(
+            properties.getPickupAddressLine1(),
 
-                        properties.getPickupName(),
+            properties.getPickupAddressLine2(),
 
-                        properties.getPickupContact(),
+            properties.getPickupCity(),
 
-                        properties.getPickupAddressLine1(),
+            properties.getPickupState(),
 
-                        properties.getPickupAddressLine2(),
+            parsePincode(properties.getPickupPincode(), "SHADOWFAX_PICKUP"),
 
-                        properties.getPickupCity(),
+            null,
 
-                        properties.getPickupState(),
+            null,
 
-                        parsePincode(
-                                properties.getPickupPincode(),
-                                "SHADOWFAX_PICKUP"
-                        ),
+            blankToNull(properties.getPickupUniqueCode())
+        );
 
-                        null,
+        ShadowfaxClient.RtsDetails rtsDetails = new ShadowfaxClient.RtsDetails(
+            properties.getRtsName(),
 
-                        null,
+            properties.getRtsContact(),
 
-                        blankToNull(
-                                properties.getPickupUniqueCode()
-                        )
-                );
+            properties.getRtsAddressLine1(),
 
-        ShadowfaxClient.RtsDetails rtsDetails =
-                new ShadowfaxClient.RtsDetails(
+            properties.getRtsAddressLine2(),
 
-                        properties.getRtsName(),
+            properties.getRtsCity(),
 
-                        properties.getRtsContact(),
+            properties.getRtsState(),
 
-                        properties.getRtsAddressLine1(),
+            parsePincode(properties.getRtsPincode(), "SHADOWFAX_RTS"),
 
-                        properties.getRtsAddressLine2(),
+            properties.getRtsEmail(),
 
-                        properties.getRtsCity(),
+            null,
 
-                        properties.getRtsState(),
+            null,
 
-                        parsePincode(
-                                properties.getRtsPincode(),
-                                "SHADOWFAX_RTS"
-                        ),
+            blankToNull(properties.getRtsUniqueCode())
+        );
 
-                        properties.getRtsEmail(),
+        ShadowfaxClient.ShadowfaxOrderRequest request = new ShadowfaxClient.ShadowfaxOrderRequest(
+            "marketplace",
 
-                        null,
+            orderDetails,
 
-                        null,
+            customerDetails,
 
-                        blankToNull(
-                                properties.getRtsUniqueCode()
-                        )
-                );
+            pickupDetails,
 
-        ShadowfaxClient.ShadowfaxOrderRequest request =
-                new ShadowfaxClient.ShadowfaxOrderRequest(
+            rtsDetails,
 
-                        "marketplace",
+            productDetails
+        );
 
-                        orderDetails,
-
-                        customerDetails,
-
-                        pickupDetails,
-
-                        rtsDetails,
-
-                        productDetails
-                );
-
-        ShadowfaxClient.ShadowfaxOrderResponse response =
-                shadowfaxClient.createMarketplaceOrder(request);
+        ShadowfaxClient.ShadowfaxOrderResponse response = shadowfaxClient.createMarketplaceOrder(request);
 
         validateShadowfaxResponse(response);
 
-        ShadowfaxClient.ShadowfaxOrderData data =
-                response.data();
+        ShadowfaxClient.ShadowfaxOrderData data = response.data();
 
-        String awbNumber =
-                data.awb_number();
+        String awbNumber = data.awb_number();
 
-        if (awbNumber == null
-                || awbNumber.isBlank()) {
-
+        if (awbNumber == null || awbNumber.isBlank()) {
             throw new ApiException(
-                    "SHADOWFAX_AWB_NOT_RETURNED",
-                    "Shadowfax accepted the order but did not return an AWB",
-                    HttpStatus.BAD_GATEWAY
+                "SHADOWFAX_AWB_NOT_RETURNED",
+                "Shadowfax accepted the order but did not return an AWB",
+                HttpStatus.BAD_GATEWAY
             );
         }
 
@@ -474,48 +406,31 @@ public class ShadowfaxOrderService {
         shipment.setCourierName(COURIER_NAME);
         shipment.setProviderCode(PROVIDER_CODE);
 
-        shipment.setTrackingNumber(
-                awbNumber.trim()
-        );
+        shipment.setTrackingNumber(awbNumber.trim());
 
         /*
          * Shadowfax's internal shipment/order ID.
          */
         if (data.id() != null) {
-            shipment.setExternalShipmentId(
-                    String.valueOf(data.id())
-            );
+            shipment.setExternalShipmentId(String.valueOf(data.id()));
         }
 
         /*
          * Preserve Shadowfax's original status separately
          * from our internal shipment status.
          */
-        shipment.setExternalStatus(
-                blankToNull(data.status())
-        );
+        shipment.setExternalStatus(blankToNull(data.status()));
 
-        shipment.setExternalStatusDisplay(
-                blankToNull(data.status_display())
-        );
+        shipment.setExternalStatusDisplay(blankToNull(data.status_display()));
 
-        shipment.setShipmentStatus(
-                mapShadowfaxStatus(data.status())
-        );
+        shipment.setShipmentStatus(mapShadowfaxStatus(data.status()));
 
-        if ("PICKED_UP".equals(
-                shipment.getShipmentStatus()
-        )) {
-            shipment.setShippedAt(
-                    java.time.LocalDateTime.now()
-            );
+        if ("PICKED_UP".equals(shipment.getShipmentStatus())) {
+            shipment.setShippedAt(java.time.LocalDateTime.now());
         }
 
-        if ("DELIVERED".equals(
-                shipment.getShipmentStatus()
-        )) {
-            java.time.LocalDateTime now =
-                    java.time.LocalDateTime.now();
+        if ("DELIVERED".equals(shipment.getShipmentStatus())) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
             shipment.setShippedAt(now);
             shipment.setDeliveredAt(now);
@@ -530,52 +445,35 @@ public class ShadowfaxOrderService {
             }
         }
 
-        shipment.setLastSyncedAt(
-                java.time.LocalDateTime.now()
-        );
+        shipment.setLastSyncedAt(java.time.LocalDateTime.now());
 
         return shipmentRepository.save(shipment);
     }
 
-    private void validateOrderForShipment(
-            Order order
-    ) {
+    private void validateOrderForShipment(Order order) {
+        String paymentMethod = order.getPaymentMethod();
 
-        String paymentMethod =
-                order.getPaymentMethod();
-
-        if (paymentMethod == null
-                || paymentMethod.isBlank()) {
-
+        if (paymentMethod == null || paymentMethod.isBlank()) {
             throw new ApiException(
-                    "PAYMENT_METHOD_REQUIRED",
-                    "Order payment method is required before shipment creation",
-                    HttpStatus.CONFLICT
+                "PAYMENT_METHOD_REQUIRED",
+                "Order payment method is required before shipment creation",
+                HttpStatus.CONFLICT
             );
         }
 
-        String normalizedPaymentMethod =
-                paymentMethod
-                        .trim()
-                        .toUpperCase(Locale.ROOT);
+        String normalizedPaymentMethod = paymentMethod.trim().toUpperCase(Locale.ROOT);
 
-        String paymentStatus =
-                order.getPaymentStatus();
+        String paymentStatus = order.getPaymentStatus();
 
-        if (paymentStatus == null
-                || paymentStatus.isBlank()) {
-
+        if (paymentStatus == null || paymentStatus.isBlank()) {
             throw new ApiException(
-                    "PAYMENT_STATUS_REQUIRED",
-                    "Order payment status is required before shipment creation",
-                    HttpStatus.CONFLICT
+                "PAYMENT_STATUS_REQUIRED",
+                "Order payment status is required before shipment creation",
+                HttpStatus.CONFLICT
             );
         }
 
-        String normalizedPaymentStatus =
-                paymentStatus
-                        .trim()
-                        .toUpperCase(Locale.ROOT);
+        String normalizedPaymentStatus = paymentStatus.trim().toUpperCase(Locale.ROOT);
 
         /*
          * COD:
@@ -584,18 +482,14 @@ public class ShadowfaxOrderService {
          * Therefore payment_status can remain PENDING.
          */
         if ("COD".equals(normalizedPaymentMethod)) {
-
-            if (!"PENDING".equals(normalizedPaymentStatus)
-                    && !"COD".equals(normalizedPaymentStatus)) {
-
+            if (!"PENDING".equals(normalizedPaymentStatus) && !"COD".equals(normalizedPaymentStatus)) {
                 throw new ApiException(
-                        "INVALID_COD_PAYMENT_STATE",
-                        "COD order is not in a valid payment state",
-                        HttpStatus.CONFLICT
+                    "INVALID_COD_PAYMENT_STATE",
+                    "COD order is not in a valid payment state",
+                    HttpStatus.CONFLICT
                 );
             }
         }
-
         /*
          * Razorpay:
          *
@@ -603,74 +497,50 @@ public class ShadowfaxOrderService {
          * has actually been verified and the order is PAID.
          */
         else if ("CASHFREE".equals(normalizedPaymentMethod) || "RAZORPAY".equals(normalizedPaymentMethod)) {
-
             if (!"PAID".equals(normalizedPaymentStatus)) {
-
                 throw new ApiException(
-                        "PAYMENT_NOT_COMPLETED",
-                        "Razorpay payment has not been completed",
-                        HttpStatus.CONFLICT
+                    "PAYMENT_NOT_COMPLETED",
+                    "Razorpay payment has not been completed",
+                    HttpStatus.CONFLICT
                 );
             }
-        }
-
-        else {
-
+        } else {
             throw new ApiException(
-                    "INVALID_PAYMENT_METHOD",
-                    "Unsupported payment method: "
-                            + paymentMethod,
-                    HttpStatus.BAD_REQUEST
+                "INVALID_PAYMENT_METHOD",
+                "Unsupported payment method: " + paymentMethod,
+                HttpStatus.BAD_REQUEST
             );
         }
 
-        String orderStatus =
-                order.getOrderStatus();
+        String orderStatus = order.getOrderStatus();
 
         if (orderStatus != null) {
+            String normalizedOrderStatus = orderStatus.trim().toUpperCase(Locale.ROOT);
 
-            String normalizedOrderStatus =
-                    orderStatus
-                            .trim()
-                            .toUpperCase(Locale.ROOT);
-
-            if ("CANCELLED".equals(normalizedOrderStatus)
-                    || "CANCELED".equals(normalizedOrderStatus)
-                    || "DELIVERED".equals(normalizedOrderStatus)) {
-
+            if (
+                "CANCELLED".equals(normalizedOrderStatus) ||
+                "CANCELED".equals(normalizedOrderStatus) ||
+                "DELIVERED".equals(normalizedOrderStatus)
+            ) {
                 throw new ApiException(
-                        "ORDER_NOT_ELIGIBLE_FOR_SHIPMENT",
-                        "Order is not eligible for shipment creation",
-                        HttpStatus.CONFLICT
+                    "ORDER_NOT_ELIGIBLE_FOR_SHIPMENT",
+                    "Order is not eligible for shipment creation",
+                    HttpStatus.CONFLICT
                 );
             }
         }
     }
 
-    private String determinePaymentMode(
-            Order order
-    ) {
+    private String determinePaymentMode(Order order) {
+        String paymentMethod = order.getPaymentMethod();
 
-        String paymentMethod =
-                order.getPaymentMethod();
-
-        if (paymentMethod == null
-                || paymentMethod.isBlank()) {
-
-            throw new ApiException(
-                    "PAYMENT_METHOD_REQUIRED",
-                    "Payment method is required",
-                    HttpStatus.BAD_REQUEST
-            );
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            throw new ApiException("PAYMENT_METHOD_REQUIRED", "Payment method is required", HttpStatus.BAD_REQUEST);
         }
 
-        String normalizedPaymentMethod =
-                paymentMethod
-                        .trim()
-                        .toUpperCase(Locale.ROOT);
+        String normalizedPaymentMethod = paymentMethod.trim().toUpperCase(Locale.ROOT);
 
         if ("COD".equals(normalizedPaymentMethod)) {
-
             /*
              * COD means Shadowfax must collect the order total
              * from the customer.
@@ -679,7 +549,6 @@ public class ShadowfaxOrderService {
         }
 
         if ("CASHFREE".equals(normalizedPaymentMethod) || "RAZORPAY".equals(normalizedPaymentMethod)) {
-
             /*
              * validateOrderForShipment() has already confirmed
              * that the Razorpay order is PAID.
@@ -688,254 +557,167 @@ public class ShadowfaxOrderService {
         }
 
         throw new ApiException(
-                "INVALID_PAYMENT_METHOD",
-                "Unsupported payment method: "
-                        + paymentMethod,
-                HttpStatus.BAD_REQUEST
+            "INVALID_PAYMENT_METHOD",
+            "Unsupported payment method: " + paymentMethod,
+            HttpStatus.BAD_REQUEST
         );
     }
 
-    private void validateOrderItem(
-            OrderItem item
-    ) {
-
+    private void validateOrderItem(OrderItem item) {
         if (item == null) {
-
-            throw new ApiException(
-                    "INVALID_ORDER_ITEM",
-                    "Order contains an invalid item",
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("INVALID_ORDER_ITEM", "Order contains an invalid item", HttpStatus.BAD_REQUEST);
         }
 
-        if (item.getUnitPrice() == null
-                || item.getUnitPrice().signum() < 0) {
-
+        if (item.getUnitPrice() == null || item.getUnitPrice().signum() < 0) {
             throw new ApiException(
-                    "INVALID_ORDER_ITEM_PRICE",
-                    "Order contains an invalid item price",
-                    HttpStatus.BAD_REQUEST
+                "INVALID_ORDER_ITEM_PRICE",
+                "Order contains an invalid item price",
+                HttpStatus.BAD_REQUEST
             );
         }
 
         if (item.getQuantity() <= 0) {
-
             throw new ApiException(
-                    "INVALID_ORDER_ITEM_QUANTITY",
-                    "Order contains an invalid item quantity",
-                    HttpStatus.BAD_REQUEST
+                "INVALID_ORDER_ITEM_QUANTITY",
+                "Order contains an invalid item quantity",
+                HttpStatus.BAD_REQUEST
             );
         }
 
         if (isBlank(item.getProductName())) {
-
             throw new ApiException(
-                    "INVALID_ORDER_ITEM_NAME",
-                    "Order item product name is required",
-                    HttpStatus.BAD_REQUEST
+                "INVALID_ORDER_ITEM_NAME",
+                "Order item product name is required",
+                HttpStatus.BAD_REQUEST
             );
         }
 
         if (isBlank(item.getProductSku())) {
-
-            throw new ApiException(
-                    "INVALID_ORDER_ITEM_SKU",
-                    "Order item SKU is required",
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ApiException("INVALID_ORDER_ITEM_SKU", "Order item SKU is required", HttpStatus.BAD_REQUEST);
         }
     }
 
-    private void validateShadowfaxResponse(
-            ShadowfaxClient.ShadowfaxOrderResponse response
-    ) {
-
+    private void validateShadowfaxResponse(ShadowfaxClient.ShadowfaxOrderResponse response) {
         if (response == null) {
-
             throw new ApiException(
-                    "SHADOWFAX_EMPTY_RESPONSE",
-                    "Shadowfax returned an empty response",
-                    HttpStatus.BAD_GATEWAY
+                "SHADOWFAX_EMPTY_RESPONSE",
+                "Shadowfax returned an empty response",
+                HttpStatus.BAD_GATEWAY
             );
         }
 
-        if (!"Success".equalsIgnoreCase(
-                response.message()
-        )) {
-
+        if (!"Success".equalsIgnoreCase(response.message())) {
             String errorMessage =
-                    response.errors() == null
-                            ? "Shadowfax order creation failed"
-                            : response.errors().toString();
+                response.errors() == null ? "Shadowfax order creation failed" : response.errors().toString();
 
-            throw new ApiException(
-                    "SHADOWFAX_ORDER_FAILED",
-                    errorMessage,
-                    HttpStatus.BAD_GATEWAY
-            );
+            throw new ApiException("SHADOWFAX_ORDER_FAILED", errorMessage, HttpStatus.BAD_GATEWAY);
         }
 
         if (response.data() == null) {
-
             throw new ApiException(
-                    "SHADOWFAX_ORDER_DATA_MISSING",
-                    "Shadowfax accepted the request but returned no order data",
-                    HttpStatus.BAD_GATEWAY
+                "SHADOWFAX_ORDER_DATA_MISSING",
+                "Shadowfax accepted the request but returned no order data",
+                HttpStatus.BAD_GATEWAY
             );
         }
     }
 
     private void validateConfiguration() {
-
-        if (isBlank(properties.getPickupName())
-                || isBlank(properties.getPickupContact())
-                || isBlank(properties.getPickupAddressLine1())
-                || isBlank(properties.getPickupCity())
-                || isBlank(properties.getPickupState())
-                || isBlank(properties.getPickupPincode())) {
-
+        if (
+            isBlank(properties.getPickupName()) ||
+            isBlank(properties.getPickupContact()) ||
+            isBlank(properties.getPickupAddressLine1()) ||
+            isBlank(properties.getPickupCity()) ||
+            isBlank(properties.getPickupState()) ||
+            isBlank(properties.getPickupPincode())
+        ) {
             throw new ApiException(
-                    "SHADOWFAX_PICKUP_CONFIGURATION_INVALID",
-                    "Shadowfax pickup configuration is incomplete",
-                    HttpStatus.INTERNAL_SERVER_ERROR
+                "SHADOWFAX_PICKUP_CONFIGURATION_INVALID",
+                "Shadowfax pickup configuration is incomplete",
+                HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
 
-        if (isBlank(properties.getRtsName())
-                || isBlank(properties.getRtsContact())
-                || isBlank(properties.getRtsAddressLine1())
-                || isBlank(properties.getRtsCity())
-                || isBlank(properties.getRtsState())
-                || isBlank(properties.getRtsPincode())) {
-
+        if (
+            isBlank(properties.getRtsName()) ||
+            isBlank(properties.getRtsContact()) ||
+            isBlank(properties.getRtsAddressLine1()) ||
+            isBlank(properties.getRtsCity()) ||
+            isBlank(properties.getRtsState()) ||
+            isBlank(properties.getRtsPincode())
+        ) {
             throw new ApiException(
-                    "SHADOWFAX_RTS_CONFIGURATION_INVALID",
-                    "Shadowfax RTS configuration is incomplete",
-                    HttpStatus.INTERNAL_SERVER_ERROR
+                "SHADOWFAX_RTS_CONFIGURATION_INVALID",
+                "Shadowfax RTS configuration is incomplete",
+                HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
     }
 
-    private Integer parsePincode(
-            String pincode,
-            String fieldName
-    ) {
-
-        if (pincode == null
-                || pincode.isBlank()) {
-
+    private Integer parsePincode(String pincode, String fieldName) {
+        if (pincode == null || pincode.isBlank()) {
             throw new ApiException(
-                    "INVALID_PINCODE",
-                    fieldName + " pincode is required",
-                    HttpStatus.INTERNAL_SERVER_ERROR
+                "INVALID_PINCODE",
+                fieldName + " pincode is required",
+                HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
 
         try {
+            int parsed = Integer.parseInt(pincode.trim());
 
-            int parsed =
-                    Integer.parseInt(pincode.trim());
-
-            if (parsed < 100000
-                    || parsed > 999999) {
-
+            if (parsed < 100000 || parsed > 999999) {
                 throw new NumberFormatException();
             }
 
             return parsed;
-
         } catch (NumberFormatException e) {
-
             throw new ApiException(
-                    "INVALID_PINCODE",
-                    fieldName
-                            + " pincode must be a valid 6 digit number",
-                    HttpStatus.INTERNAL_SERVER_ERROR
+                "INVALID_PINCODE",
+                fieldName + " pincode must be a valid 6 digit number",
+                HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
     }
 
-    private String mapShadowfaxStatus(
-            String shadowfaxStatus
-    ) {
-
-        if (shadowfaxStatus == null
-                || shadowfaxStatus.isBlank()) {
-
+    private String mapShadowfaxStatus(String shadowfaxStatus) {
+        if (shadowfaxStatus == null || shadowfaxStatus.isBlank()) {
             return "CREATED";
         }
 
-        return switch (
-                shadowfaxStatus
-                        .trim()
-                        .toLowerCase(Locale.ROOT)
-                ) {
-
-            case "new" ->
-                    "CREATED";
-
-            case "picked",
-                 "assigned_for_seller_pickup",
-                 "ofp" ->
-                    "PICKED_UP";
-
-            case "recd_at_rev_hub",
-                 "item_manifested",
-                 "recd_at_fwd_hub",
-                 "recd_at_fwd_dc",
-                 "assigned_for_delivery",
-                 "bag_received",
-                 "bag_in_transit",
-                 "pincode_updated",
-                 "item_misrouted",
-                 "on_hold",
-                 "reopen_ndr" ->
-                    "IN_TRANSIT";
-
-            case "ofd",
-                 "rts_ofd" ->
-                    "OUT_FOR_DELIVERY";
-
-            case "delivered" ->
-                    "DELIVERED";
-
-            case "rts",
-                 "rts_d",
-                 "rts_in_process",
-                 "rts_nd",
-                 "in_transit_return" ->
-                    "RETURNED";
-
-            case "lost" ->
-                    "LOST";
-
-            case "cid",
-                 "nc",
-                 "na" ->
-                    "DELIVERY_ATTEMPTED";
-
-            default ->
-                    "IN_TRANSIT";
+        return switch (shadowfaxStatus.trim().toLowerCase(Locale.ROOT)) {
+            case "new" -> "CREATED";
+            case "picked", "assigned_for_seller_pickup", "ofp" -> "PICKED_UP";
+            case
+                "recd_at_rev_hub",
+                "item_manifested",
+                "recd_at_fwd_hub",
+                "recd_at_fwd_dc",
+                "assigned_for_delivery",
+                "bag_received",
+                "bag_in_transit",
+                "pincode_updated",
+                "item_misrouted",
+                "on_hold",
+                "reopen_ndr" -> "IN_TRANSIT";
+            case "ofd", "rts_ofd" -> "OUT_FOR_DELIVERY";
+            case "delivered" -> "DELIVERED";
+            case "rts", "rts_d", "rts_in_process", "rts_nd", "in_transit_return" -> "RETURNED";
+            case "lost" -> "LOST";
+            case "cid", "nc", "na" -> "DELIVERY_ATTEMPTED";
+            default -> "IN_TRANSIT";
         };
     }
 
-    private String blankToNull(
-            String value
-    ) {
-
-        if (value == null
-                || value.isBlank()) {
-
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
 
         return value.trim();
     }
 
-    private boolean isBlank(
-            String value
-    ) {
-        return value == null
-                || value.isBlank();
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

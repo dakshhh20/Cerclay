@@ -42,7 +42,9 @@ export default function SiteHeader() {
           setWhatsappNumber("");
         }
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -62,16 +64,27 @@ export default function SiteHeader() {
 
   useEffect(() => {
     let active = true;
-    getProducts().then((data) => {
-      if (!active) return;
-      const list = Array.isArray(data) ? data : data?.content || data?.products || [];
-      const cats = Array.from(new Set(list.map((p) => String(p?.category || "").trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b));
-      setHeaderCategories(cats);
-    }).catch(() => { if (active) setHeaderCategories([]); });
-    return () => { active = false; };
+    getProducts()
+      .then((data) => {
+        if (!active) return;
+        const list = Array.isArray(data) ? data : data?.content || data?.products || [];
+        const cats = Array.from(
+          new Set(list.map((p) => String(p?.category || "").trim()).filter(Boolean))
+        ).sort((a, b) => a.localeCompare(b));
+        setHeaderCategories(cats);
+      })
+      .catch(() => {
+        if (active) setHeaderCategories([]);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const currentCategory = React.useMemo(() => new URLSearchParams(location.search).get("category") || "", [location.search]);
+  const currentCategory = React.useMemo(
+    () => new URLSearchParams(location.search).get("category") || "",
+    [location.search]
+  );
 
   const searchSuggestions = React.useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -123,9 +136,12 @@ export default function SiteHeader() {
                 {freeShippingThreshold != null
                   ? `FREE DELIVERY ON ORDERS ABOVE ₹${freeShippingThreshold.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
                   : "FREE DELIVERY — SEE DELIVERY TERMS AT CHECKOUT"}
-              </span><b>•</b>
-              <span>CRAFTED FOR A WARMER HOME</span><b>•</b>
-              <span>EVERYDAY CERAMICS, CONSIDERED SLOWLY</span><b>•</b>
+              </span>
+              <b>•</b>
+              <span>CRAFTED FOR A WARMER HOME</span>
+              <b>•</b>
+              <span>EVERYDAY CERAMICS, CONSIDERED SLOWLY</span>
+              <b>•</b>
             </React.Fragment>
           ))}
         </div>
@@ -133,35 +149,84 @@ export default function SiteHeader() {
 
       <header className="site-header">
         <div className="header-inner">
-          <button className="mobile-menu-button icon-button" type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen((open) => !open)}>
+          <button
+            className="mobile-menu-button icon-button"
+            type="button"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
             {menuOpen ? <X size={21} /> : <Menu size={21} />}
           </button>
 
-          <Link className="brand" to="/" onClick={() => setMenuOpen(false)} aria-label="Cerclay home">
+          <Link
+            className="brand"
+            to="/"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Cerclay home"
+          >
             <img src="/assets/cerclay-wordmark.jpg" alt="Cerclay — Crafted for a warmer home" />
           </Link>
 
-          <nav className={`desktop-nav ${menuOpen ? "mobile-open" : ""}`} aria-label="Main navigation">
-            <NavLink to="/" end onClick={() => setMenuOpen(false)}>Home</NavLink>
-            <NavLink to="/shop" onClick={() => setMenuOpen(false)}>Collection</NavLink>
-            <a href="/#about" onClick={() => setMenuOpen(false)}>Our Story</a>
-            <NavLink to={customer ? "/account" : "/login"} onClick={() => setMenuOpen(false)}>Account</NavLink>
+          <nav
+            className={`desktop-nav ${menuOpen ? "mobile-open" : ""}`}
+            aria-label="Main navigation"
+          >
+            <NavLink to="/" end onClick={() => setMenuOpen(false)}>
+              Home
+            </NavLink>
+            <NavLink to="/shop" onClick={() => setMenuOpen(false)}>
+              Collection
+            </NavLink>
+            <a href="/#about" onClick={() => setMenuOpen(false)}>
+              Our Story
+            </a>
+            <NavLink to={customer ? "/account" : "/login"} onClick={() => setMenuOpen(false)}>
+              Account
+            </NavLink>
           </nav>
 
           <div className="header-actions">
-            <button className="icon-button" aria-label="Search products" onClick={() => setSearchOpen((open) => !open)}>
-              {searchOpen ? <X size={20} strokeWidth={1.7} /> : <Search size={20} strokeWidth={1.7} />}
+            <button
+              className="icon-button"
+              aria-label="Search products"
+              onClick={() => setSearchOpen((open) => !open)}
+            >
+              {searchOpen ? (
+                <X size={20} strokeWidth={1.7} />
+              ) : (
+                <Search size={20} strokeWidth={1.7} />
+              )}
             </button>
-            <Link to={customer ? "/account/wishlist" : "/login"} className="icon-button cart-button" aria-label={customer ? `Wishlist, ${wishlistCount} saved` : "Sign in to view wishlist"}>
+            <Link
+              to={customer ? "/account/wishlist" : "/login"}
+              className="icon-button cart-button"
+              aria-label={
+                customer ? `Wishlist, ${wishlistCount} saved` : "Sign in to view wishlist"
+              }
+            >
               <Heart size={20} strokeWidth={1.7} />
-              {customer && wishlistCount > 0 && <span className="cart-count wishlist-count-badge">{wishlistCount > 99 ? "99+" : wishlistCount}</span>}
+              {customer && wishlistCount > 0 && (
+                <span className="cart-count wishlist-count-badge">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
             </Link>
-            <Link to={customer ? "/account" : "/login"} className="icon-button" aria-label={customer ? "Account" : "Sign in"}>
+            <Link
+              to={customer ? "/account" : "/login"}
+              className="icon-button"
+              aria-label={customer ? "Account" : "Sign in"}
+            >
               <UserRound size={20} strokeWidth={1.7} />
             </Link>
-            <Link to="/cart" className="icon-button cart-button" aria-label={`Cart, ${itemCount} items`}>
+            <Link
+              to="/cart"
+              className="icon-button cart-button"
+              aria-label={`Cart, ${itemCount} items`}
+            >
               <ShoppingBag size={20} strokeWidth={1.7} />
-              {itemCount > 0 && <span className="cart-count">{itemCount > 99 ? "99+" : itemCount}</span>}
+              {itemCount > 0 && (
+                <span className="cart-count">{itemCount > 99 ? "99+" : itemCount}</span>
+              )}
             </Link>
           </div>
         </div>
@@ -180,18 +245,25 @@ export default function SiteHeader() {
                   aria-autocomplete="list"
                   aria-controls="cerclay-search-suggestions"
                 />
-                <button type="submit" className="primary-button">Search collection</button>
+                <button type="submit" className="primary-button">
+                  Search collection
+                </button>
               </form>
 
               {query.trim() && (
                 <div className="search-suggestions" id="cerclay-search-suggestions" role="listbox">
                   {searchLoading ? (
-                    <div className="search-suggestion-state">Finding pieces from the collection…</div>
+                    <div className="search-suggestion-state">
+                      Finding pieces from the collection…
+                    </div>
                   ) : searchSuggestions.length > 0 ? (
                     <>
                       <div className="search-suggestions-heading">
                         <span>Suggested pieces</span>
-                        <span>{searchSuggestions.length} match{searchSuggestions.length === 1 ? "" : "es"}</span>
+                        <span>
+                          {searchSuggestions.length} match
+                          {searchSuggestions.length === 1 ? "" : "es"}
+                        </span>
                       </div>
                       {searchSuggestions.map((product) => {
                         const image = suggestionImage(product);
@@ -234,7 +306,10 @@ export default function SiteHeader() {
         )}
       </header>
 
-      <nav className={`category-nav ${menuOpen ? "category-nav-mobile-open" : ""}`} aria-label="Shop categories">
+      <nav
+        className={`category-nav ${menuOpen ? "category-nav-mobile-open" : ""}`}
+        aria-label="Shop categories"
+      >
         <div className="category-nav-inner">
           <Link
             to="/shop"
@@ -256,11 +331,15 @@ export default function SiteHeader() {
         </div>
       </nav>
 
-      {searchOpen && <div
-        className="search-open-spacer"
-        aria-hidden="true"
-        style={{ height: `${query.trim() ? Math.min(520, 112 + (searchLoading ? 64 : (searchSuggestions.length > 0 ? 94 + Math.min(searchSuggestions.length, 6) * 68 : 92))) : 104}px` }}
-      />}
+      {searchOpen && (
+        <div
+          className="search-open-spacer"
+          aria-hidden="true"
+          style={{
+            height: `${query.trim() ? Math.min(520, 112 + (searchLoading ? 64 : searchSuggestions.length > 0 ? 94 + Math.min(searchSuggestions.length, 6) * 68 : 92)) : 104}px`,
+          }}
+        />
+      )}
 
       {whatsappNumber && (
         <a
@@ -271,7 +350,10 @@ export default function SiteHeader() {
           aria-label="Chat with Cerclay on WhatsApp"
         >
           <svg className="whatsapp-contact-icon" viewBox="0 0 24 24" role="img" aria-hidden="true">
-            <path d="M20.52 3.48A11.82 11.82 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.09.55 4.13 1.6 5.92L.1 24l6.35-1.66a11.86 11.86 0 0 0 5.63 1.43h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.23-6.14-3.45-8.41Zm-8.44 18.27h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.77.99 1.01-3.67-.23-.38a9.85 9.85 0 0 1-1.51-5.22C2.18 6.43 6.61 2 12.08 2c2.65 0 5.14 1.03 7.01 2.91a9.85 9.85 0 0 1 2.9 7.01c0 5.47-4.45 9.83-9.91 9.83Zm5.4-7.39c-.3-.15-1.77-.87-2.05-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.51-1.78-1.69-2.08-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.71.63.72.23 1.38.2 1.9.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z" fill="currentColor"/>
+            <path
+              d="M20.52 3.48A11.82 11.82 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.09.55 4.13 1.6 5.92L.1 24l6.35-1.66a11.86 11.86 0 0 0 5.63 1.43h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.23-6.14-3.45-8.41Zm-8.44 18.27h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.77.99 1.01-3.67-.23-.38a9.85 9.85 0 0 1-1.51-5.22C2.18 6.43 6.61 2 12.08 2c2.65 0 5.14 1.03 7.01 2.91a9.85 9.85 0 0 1 2.9 7.01c0 5.47-4.45 9.83-9.91 9.83Zm5.4-7.39c-.3-.15-1.77-.87-2.05-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.51-1.78-1.69-2.08-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.71.63.72.23 1.38.2 1.9.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z"
+              fill="currentColor"
+            />
           </svg>
           <span>Chat on WhatsApp</span>
         </a>

@@ -1,7 +1,6 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -34,8 +33,7 @@ public class StoreSettings {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public StoreSettings() {
-    }
+    public StoreSettings() {}
 
     @PrePersist
     protected void onCreate() {

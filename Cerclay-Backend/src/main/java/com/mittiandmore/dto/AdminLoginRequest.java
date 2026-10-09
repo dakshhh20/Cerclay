@@ -5,8 +5,7 @@ public class AdminLoginRequest {
     private String email;
     private String password;
 
-    public AdminLoginRequest() {
-    }
+    public AdminLoginRequest() {}
 
     public String getEmail() {
         return email;

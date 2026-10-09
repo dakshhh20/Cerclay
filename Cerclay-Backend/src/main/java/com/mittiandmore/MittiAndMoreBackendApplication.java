@@ -8,8 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class MittiAndMoreBackendApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MittiAndMoreBackendApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(MittiAndMoreBackendApplication.class, args);
+    }
 }

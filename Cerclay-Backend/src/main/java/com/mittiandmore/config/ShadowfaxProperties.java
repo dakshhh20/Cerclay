@@ -5,8 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "shadowfax")
 public class ShadowfaxProperties {
 
-    private String baseUrl =
-            "https://dale.staging.shadowfax.in/api";
+    private String baseUrl = "https://dale.staging.shadowfax.in/api";
 
     private String apiToken;
 

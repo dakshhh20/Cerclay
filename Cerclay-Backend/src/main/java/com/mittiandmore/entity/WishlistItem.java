@@ -1,22 +1,18 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "wishlist_items",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_wishlist_customer_product",
-                        columnNames = {"customer_id", "product_id"}
-                )
-        },
-        indexes = {
-                @Index(name = "idx_wishlist_customer", columnList = "customer_id"),
-                @Index(name = "idx_wishlist_product", columnList = "product_id")
-        }
+    name = "wishlist_items",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_wishlist_customer_product", columnNames = { "customer_id", "product_id" }),
+    },
+    indexes = {
+        @Index(name = "idx_wishlist_customer", columnList = "customer_id"),
+        @Index(name = "idx_wishlist_product", columnList = "product_id"),
+    }
 )
 public class WishlistItem {
 
@@ -35,8 +31,7 @@ public class WishlistItem {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public WishlistItem() {
-    }
+    public WishlistItem() {}
 
     @PrePersist
     protected void onCreate() {

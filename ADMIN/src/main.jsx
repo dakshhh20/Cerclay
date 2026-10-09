@@ -1,254 +1,3446 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles.css';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
-const imageUrl = value => { if(!value) return value; try { return new URL(value, `${API_ORIGIN}/`).toString(); } catch { return value; } };
-const normaliseProduct = p => p ? ({...p, image:imageUrl(p.image), images:Array.isArray(p.images)?p.images.map(i=>({...i,imageUrl:imageUrl(i.imageUrl||i.url)})):p.images}) : p;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
+const imageUrl = (value) => {
+  if (!value) return value;
+  try {
+    return new URL(value, `${API_ORIGIN}/`).toString();
+  } catch {
+    return value;
+  }
+};
+const normaliseProduct = (p) =>
+  p
+    ? {
+        ...p,
+        image: imageUrl(p.image),
+        images: Array.isArray(p.images)
+          ? p.images.map((i) => ({ ...i, imageUrl: imageUrl(i.imageUrl || i.url) }))
+          : p.images,
+      }
+    : p;
 const navItems = [
-  ['dashboard','Dashboard','⌂'],['orders','Orders','▣'],['products','Products','◇'],['inventory','Inventory','▤'],
-  ['customers','Customers','♙'],['reviews','Reviews','★'],['returns','Returns','↩'],['discounts','Discounts','%'],['shipping','Shipping','⌁'],['payments','Payments','₹'],['communications','Communications','✉'],['settings','Settings','⚙']
+  ["dashboard", "Dashboard", "⌂"],
+  ["orders", "Orders", "▣"],
+  ["products", "Products", "◇"],
+  ["inventory", "Inventory", "▤"],
+  ["customers", "Customers", "♙"],
+  ["reviews", "Reviews", "★"],
+  ["returns", "Returns", "↩"],
+  ["discounts", "Discounts", "%"],
+  ["shipping", "Shipping", "⌁"],
+  ["payments", "Payments", "₹"],
+  ["communications", "Communications", "✉"],
+  ["settings", "Settings", "⚙"],
 ];
 
 async function api(path, options = {}) {
   const isForm = options.body instanceof FormData;
-  const headers = isForm ? { 'X-Client-Type':'admin', ...(options.headers || {}) } : { 'Content-Type':'application/json', 'X-Client-Type':'admin', ...(options.headers || {}) };
-  const response = await fetch(`${API_BASE}${path}`, { credentials:'include', ...options, headers });
+  const headers = isForm
+    ? { "X-Client-Type": "admin", ...(options.headers || {}) }
+    : { "Content-Type": "application/json", "X-Client-Type": "admin", ...(options.headers || {}) };
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    ...options,
+    headers,
+  });
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
-    try { const body = await response.json(); message = body.message || body.error || message; }
-    catch { const text = await response.text(); if (text) message = text; }
-    const error = new Error(message); error.status = response.status; throw error;
+    try {
+      const body = await response.json();
+      message = body.message || body.error || message;
+    } catch {
+      const text = await response.text();
+      if (text) message = text;
+    }
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   if (response.status === 204) return null;
-  const contentType = response.headers.get('content-type') || '';
-  return contentType.includes('application/json') ? response.json() : response.text();
+  const contentType = response.headers.get("content-type") || "";
+  return contentType.includes("application/json") ? response.json() : response.text();
 }
-const money = v => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(v||0));
-const date = v => { if(!v) return '—'; const d=new Date(v); return Number.isNaN(d.getTime())?v:d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
-const tone = s => { const v=String(s||'').toUpperCase(); if(v.includes('DELIVER')||v==='PAID'||v==='ACTIVE')return'success'; if(v.includes('CANCEL')||v.includes('FAIL')||v==='INACTIVE')return'danger'; if(v.includes('SHIP')||v.includes('PROCESS')||v.includes('PACK')||v==='CREATED')return'info'; return'warning'; };
-function Badge({children,t='neutral'}){return <span className={`badge badge-${t}`}>{children}</span>}
-function Notice({message,error=false}){return message?<div className={`notice ${error?'error':'success'}`}>{message}</div>:null}
-function Stat({label,value,icon,tone=''}){return <div className={`stat-card ${tone}`}><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong></div></div>}
-
-function Login({onLogin}){
-  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState('');
-  async function submit(e){e.preventDefault();setLoading(true);setError('');try{onLogin(await api('/api/admin/login',{method:'POST',body:JSON.stringify({email,password})}));}catch(err){setError(err.message)}finally{setLoading(false)}}
-  return <main className="login-shell"><section className="login-card"><div className="brand-mark">C</div><div className="eyebrow">CONTROL CENTRE</div><h1>Cerclay Admin</h1><p className="muted">Secure operations for your Cerclay store.</p><form onSubmit={submit} className="login-form"><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required /></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required /></label>{error&&<div className="form-error">{error}</div>}<button className="primary-btn wide" disabled={loading}>{loading?'Signing in…':'Sign in'}</button></form><div className="login-footer">Cerclay · secure administration</div></section></main>
+const money = (v) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(v || 0));
+const date = (v) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime())
+    ? v
+    : d.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
+const tone = (s) => {
+  const v = String(s || "").toUpperCase();
+  if (v.includes("DELIVER") || v === "PAID" || v === "ACTIVE") return "success";
+  if (v.includes("CANCEL") || v.includes("FAIL") || v === "INACTIVE") return "danger";
+  if (v.includes("SHIP") || v.includes("PROCESS") || v.includes("PACK") || v === "CREATED")
+    return "info";
+  return "warning";
+};
+function Badge({ children, t = "neutral" }) {
+  return <span className={`badge badge-${t}`}>{children}</span>;
 }
-function Shell({admin,active,setActive,onLogout,children}){
-  const [open,setOpen]=useState(false);
-  async function logout(){try{await api('/api/admin/logout',{method:'POST'})}finally{onLogout()}}
-  return <div className="app-shell"><aside className={`sidebar ${open?'mobile-open':''}`}><div className="sidebar-brand"><div className="brand-mark small">C</div><div><strong>Cerclay</strong><span>Admin</span></div></div><div className="nav-label">MANAGE</div><nav>{navItems.map(([id,label,icon])=><button key={id} className={`nav-item ${active===id?'active':''}`} onClick={()=>{setActive(id);setOpen(false)}}><span className="nav-icon">{icon}</span>{label}</button>)}</nav><div className="sidebar-bottom"><div className="admin-mini"><div className="avatar">{(admin?.name||'A')[0].toUpperCase()}</div><div><strong>{admin?.name||'Administrator'}</strong><span>{admin?.email||'Admin account'}</span></div></div><button className="logout-btn" onClick={logout}>↪ <span>Log out</span></button></div></aside><div className="main-area"><header className="topbar"><button className="mobile-menu" onClick={()=>setOpen(v=>!v)}>☰</button><div className="topbar-title">{navItems.find(x=>x[0]===active)?.[1]}</div><div className="topbar-right"><span className="live-dot">●</span> Store online <div className="top-avatar">{(admin?.name||'A')[0].toUpperCase()}</div></div></header><main className="content">{children}</main></div></div>
+function Notice({ message, error = false }) {
+  return message ? <div className={`notice ${error ? "error" : "success"}`}>{message}</div> : null;
 }
-
-function Dashboard({orders,products,customers,onRefresh}){
- const [analytics,setAnalytics]=useState(null),[days,setDays]=useState(30),[busy,setBusy]=useState(false),[error,setError]=useState('');
- async function loadAnalytics(nextDays=days){setBusy(true);setError('');try{setAnalytics(await api(`/api/admin/dashboard?days=${nextDays}`))}catch(e){setError(e.message)}finally{setBusy(false)}}
- useEffect(()=>{loadAnalytics(days)},[days]);
- const s=analytics?.summary||{};
- const daily=analytics?.dailySales||[]; const maxRevenue=Math.max(1,...daily.map(x=>Number(x.revenue||0)));
- const statusEntries=Object.entries(analytics?.orderStatuses||{}).sort((a,b)=>b[1]-a[1]);
- return <>
-  <div className="page-head"><div><div className="eyebrow">BUSINESS INTELLIGENCE</div><h1>Store dashboard</h1><p className="muted">Sales, customers, catalogue health, returns and reviews in one view.</p></div><div className="head-actions"><select className="period-select" value={days} onChange={e=>setDays(Number(e.target.value))}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select><button className="secondary-btn" onClick={()=>{loadAnalytics(days);onRefresh()}} disabled={busy}>↻ Refresh</button></div></div>
-  {error&&<Notice message={error} error/>}
-  <section className="stat-grid analytics-stats">
-   <Stat label="Gross sales" value={money(s.grossSales)} icon="₹"/>
-   <Stat label={`${days}-day sales`} value={money(s.periodSales)} icon="↗" tone="sage"/>
-   <Stat label="Net sales" value={money(s.netSales)} icon="≈"/>
-   <Stat label="Average order" value={money(s.averageOrderValue)} icon="▣"/>
-   <Stat label="Total orders" value={s.totalOrders??orders.length} icon="▣"/>
-   <Stat label="Customers" value={s.totalCustomers??customers.length} icon="♙"/>
-   <Stat label="Active products" value={s.activeProducts??products.filter(p=>p.active).length} icon="◇"/>
-   <Stat label="Refunded" value={money(s.refunded)} icon="↩" tone="warm"/>
-  </section>
-  <section className="analytics-grid">
-   <div className="panel analytics-wide"><div className="panel-head"><div><h2>Sales trend</h2><p>Gross order value from non-cancelled orders.</p></div><Badge t="info">{days} days</Badge></div><div className="sales-chart">{daily.map((d,i)=><div className="sales-bar-wrap" key={d.date} title={`${d.date}: ${money(d.revenue)} · ${d.orders} orders`}><div className="sales-bar" style={{height:`${Math.max(4,(Number(d.revenue||0)/maxRevenue)*100)}%`}}></div>{(i===0||i===daily.length-1||i%Math.max(1,Math.floor(daily.length/6))===0)&&<span>{d.date.slice(5)}</span>}</div>)}</div></div>
-   <div className="panel"><div className="panel-head"><div><h2>Order status</h2><p>Current lifecycle distribution.</p></div></div><div className="metric-list">{statusEntries.map(([k,v])=><div className="metric-row" key={k}><span>{k.replaceAll('_',' ')}</span><strong>{v}</strong></div>)}{!statusEntries.length&&<div className="empty-state">No orders yet.</div>}</div></div>
-  </section>
-  <section className="analytics-grid">
-   <div className="panel"><div className="panel-head"><div><h2>Top products</h2><p>Units and sales from non-cancelled orders.</p></div></div><div className="top-product-list">{(analytics?.topProducts||[]).map((p,i)=><div className="top-product-row" key={p.productId}><span className="rank">{i+1}</span><div className="top-product-name"><strong>{p.name}</strong><small>{p.quantity} units</small></div><strong>{money(p.revenue)}</strong></div>)}{!analytics?.topProducts?.length&&<div className="empty-state">No product sales yet.</div>}</div></div>
-   <div className="panel"><div className="panel-head"><div><h2>Payments</h2><p>Sales by payment method.</p></div></div><div className="metric-list">{Object.entries(analytics?.paymentMethods||{}).map(([k,v])=><div className="metric-row" key={k}><span>{k}</span><strong>{money(v)}</strong></div>)}{!Object.keys(analytics?.paymentMethods||{}).length&&<div className="empty-state">No payment data yet.</div>}</div></div>
-   <div className="panel"><div className="panel-head"><div><h2>Returns & refunds</h2><p>Operational after-sales snapshot.</p></div></div><div className="metric-list"><div className="metric-row"><span>Total returns</span><strong>{analytics?.returns?.total??0}</strong></div><div className="metric-row"><span>Needs attention</span><strong>{analytics?.returns?.pending??0}</strong></div><div className="metric-row"><span>Refunded</span><strong>{money(analytics?.returns?.refunded)}</strong></div><div className="metric-row"><span>Pending refunds</span><strong>{money(analytics?.returns?.pendingRefunds)}</strong></div></div></div>
-   <div className="panel"><div className="panel-head"><div><h2>Reviews</h2><p>Customer feedback moderation health.</p></div></div><div className="review-health"><div className="review-rating"><strong>{analytics?.reviews?.averageRating??'0.0'}</strong><span>★ average approved rating</span></div><div className="review-counts"><span><b>{analytics?.reviews?.pending??0}</b> pending</span><span><b>{analytics?.reviews?.approved??0}</b> published</span><span><b>{analytics?.reviews?.rejected??0}</b> rejected</span></div></div></div>
-  </section>
-  <section className="stat-grid analytics-bottom"><Stat label="Low stock" value={s.lowStock??0} icon="!" tone="warm"/><Stat label="Out of stock" value={s.outOfStock??0} icon="×"/><Stat label="Active customers" value={s.activeCustomers??0} icon="♙" tone="sage"/><Stat label="Pending refunds" value={money(s.pendingRefunds)} icon="₹" tone="warm"/></section>
-  <section className="dashboard-grid"><div className="panel large-panel"><div className="panel-head"><div><h2>Recent orders</h2><p>Latest customer orders.</p></div></div><OrdersTable orders={orders.slice(0,8)}/></div><div className="panel quick-panel"><div className="panel-head"><div><h2>Store snapshot</h2><p>Catalogue and customer health.</p></div></div><div className="snapshot-row"><span>Active products</span><strong>{s.activeProducts??products.filter(p=>p.active).length}</strong></div><div className="snapshot-row"><span>Customers</span><strong>{s.totalCustomers??customers.length}</strong></div><div className="snapshot-row"><span>Out of stock</span><strong>{s.outOfStock??products.filter(p=>Number(p.stock)<=0).length}</strong></div><div className="snapshot-row"><span>Orders in period</span><strong>{s.periodOrders??0}</strong></div></div></section>
- </>
-}
-function OrdersTable({orders,compact=false}){if(!orders.length)return <div className="empty-state">No orders found.</div>;return <div className="table-wrap"><table><thead><tr><th>Order</th><th>Date</th><th>Payment</th><th>Status</th><th>Total</th></tr></thead><tbody>{orders.map(o=><tr key={o.id}><td><strong>{o.orderNumber||`#${o.id}`}</strong><small>Customer #{o.customerId??'—'}</small></td><td>{date(o.createdAt)}</td><td><Badge t={String(o.paymentStatus).toUpperCase()==='PAID'?'success':'warning'}>{o.paymentStatus||o.paymentMethod||'—'}</Badge></td><td><Badge t={tone(o.orderStatus)}>{o.orderStatus||'—'}</Badge></td><td><strong>{money(o.total)}</strong></td></tr>)}</tbody></table></div>}
-function OrdersPage({orders,onRefresh,onSelect}){
- const [q,setQ]=useState(''),[status,setStatus]=useState('ALL');
- const filtered=orders.filter(o=>(status==='ALL'||String(o.orderStatus).toUpperCase()===status)&&JSON.stringify(o).toLowerCase().includes(q.toLowerCase()));
- return <><div className="page-head"><div><div className="eyebrow">OPERATIONS</div><h1>Orders</h1><p className="muted">Review orders, update fulfilment and create Shadowfax shipments.</p></div><button className="secondary-btn" onClick={onRefresh}>↻ Refresh</button></div><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search order, customer or status…"/><select value={status} onChange={e=>setStatus(e.target.value)}><option>ALL</option>{['PLACED','PROCESSING','PACKED','SHIPPED','DELIVERED','RETURN_REQUESTED','RETURN_APPROVED','RETURN_RECEIVED','REFUND_PENDING','REFUNDED','CANCELLED'].map(s=><option key={s}>{s}</option>)}</select><span className="toolbar-count">{filtered.length} orders</span></div><div className="panel"><div className="table-wrap"><table className="wide-table"><thead><tr><th>Order</th><th>Customer</th><th>Created</th><th>Payment</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody>{filtered.map(o=><tr key={o.id}><td><strong>{o.orderNumber||`#${o.id}`}</strong></td><td>#{o.customerId??'—'}</td><td>{date(o.createdAt)}</td><td><Badge t={String(o.paymentStatus).toUpperCase()==='PAID'?'success':'warning'}>{o.paymentStatus||'—'}</Badge></td><td><Badge t={tone(o.orderStatus)}>{o.orderStatus||'—'}</Badge></td><td>{money(o.total)}</td><td><button className="row-btn" onClick={()=>onSelect(o)}>Open</button></td></tr>)}{!filtered.length&&<tr><td colSpan="7"><div className="empty-state">No matching orders.</div></td></tr>}</tbody></table></div></div></>
-}
-function OrderDetail({order,onBack,onRefresh}){
- const [shipment,setShipment]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[status,setStatus]=useState(order.orderStatus||'PLACED'),[msg,setMsg]=useState(''),[cancelReason,setCancelReason]=useState(''),[awb,setAwb]=useState('');
- async function load(){setLoading(true);try{setShipment(await api(`/api/admin/shipments/order/${order.id}`))}catch{setShipment(null)}finally{setLoading(false)}}
- useEffect(()=>{load()},[order.id]);
- async function create(){setBusy(true);setMsg('');try{const saved=await api(`/api/admin/shadowfax/orders/${order.id}`,{method:'POST'});setShipment(saved);setAwb(saved?.trackingNumber||'');setMsg('Shadowfax shipment created.')}catch(e){setMsg(e.message)}finally{setBusy(false)}}
- async function assignAwb(){const value=awb.trim();if(!value){setMsg('Enter the Shadowfax AWB first.');return}setBusy(true);setMsg('');try{const saved=await api(`/api/admin/shadowfax/orders/${order.id}/awb`,{method:'POST',body:JSON.stringify({awb:value})});setShipment(saved);setAwb(saved?.trackingNumber||value);setMsg('Shadowfax AWB saved. Tracking sync started.')}catch(e){setMsg(e.message)}finally{setBusy(false)}}
- async function saveStatus(){
-  if(status==='CANCELLED'){setMsg('Use the Cancel Order action so stock and payment rules are applied safely.');return}
-  setBusy(true);setMsg('');try{await api(`/api/admin/orders/${order.id}/status`,{method:'PUT',body:JSON.stringify({status})});setMsg('Order status updated.');await onRefresh()}catch(e){setMsg(e.message)}finally{setBusy(false)}
- }
- async function cancel(){
-  if(!confirm('Cancel this order and restore its reserved stock?'))return;
-  setBusy(true);setMsg('');
-  try{
-   await api(`/api/admin/orders/${order.id}/cancel`,{method:'POST',body:JSON.stringify({reason:cancelReason})});
-   setMsg('Order cancelled and inventory restored.');
-   await onRefresh();
-  }catch(e){setMsg(e.message)}finally{setBusy(false)}
- }
- const canCancel=['PLACED','PROCESSING','PACKED'].includes(String(order.orderStatus||'').toUpperCase());
- const paidCashfree=String(order.paymentMethod||'').toUpperCase()==='CASHFREE'&&String(order.paymentStatus||'').toUpperCase()==='PAID';
- return <><div className="page-head"><div><button className="back-btn" onClick={onBack}>← Orders</button><h1>{order.orderNumber||`Order #${order.id}`}</h1><p className="muted">Placed {date(order.createdAt)}</p></div><Badge t={tone(order.orderStatus)}>{order.orderStatus}</Badge></div><Notice message={msg} error={!!msg&&!/updated|created|cancelled/.test(msg)}/><div className="detail-grid"><div className="panel"><div className="panel-head"><div><h2>Order workflow</h2><p>Admin-controlled status. Cancellation uses a separate protected workflow.</p></div></div><div className="form-inline"><select value={status} onChange={e=>setStatus(e.target.value)} disabled={order.orderStatus==='CANCELLED'}>{['PLACED','PROCESSING','PACKED','SHIPPED','DELIVERED'].map(s=><option key={s}>{s}</option>)}</select><button className="primary-btn" disabled={busy||order.orderStatus==='CANCELLED'} onClick={saveStatus}>Save status</button></div>{canCancel&&<div className="cancel-box"><label>Cancellation reason<input value={cancelReason} onChange={e=>setCancelReason(e.target.value)} maxLength={500} placeholder="Optional reason"/></label><button className="danger-btn" disabled={busy} onClick={cancel}>{paidCashfree?'Cancel order & initiate refund':'Cancel order & restore stock'}</button>{paidCashfree&&<small>A real Cashfree refund will be initiated as part of cancellation.</small>}</div>}<div className="detail-row"><span>Payment</span><strong>{order.paymentMethod} · {order.paymentStatus}</strong></div>{order.cancelledAt&&<div className="detail-row"><span>Cancelled</span><strong>{date(order.cancelledAt)} · {order.cancelledBy||'—'}</strong></div>}{order.cancellationReason&&<div className="detail-row"><span>Reason</span><strong>{order.cancellationReason}</strong></div>}</div><div className="panel"><div className="panel-head"><div><h2>Delivery address</h2><p>Snapshot stored on this order.</p></div></div><div className="address-card"><strong>{order.addressName||'—'}</strong><span>{order.addressPhone||'—'}</span><span>{order.addressLine1||''}</span><span>{order.addressLine2||''}</span><span>{[order.addressCity,order.addressState,order.addressPincode].filter(Boolean).join(', ')}</span></div></div><div className="panel full"><div className="panel-head"><div><h2>Items</h2><p>{order.items?.length||0} line items.</p></div></div><div className="item-list">{(order.items||[]).map((i,n)=><div className="order-item" key={i.id||n}><div><strong>{i.productName}</strong><small>{i.productSku||'No SKU'} · Qty {i.quantity}</small></div><strong>{money(i.total)}</strong></div>)}</div><div className="detail-total"><span>Total</span><strong>{money(order.total)}</strong></div></div><div className="panel full"><div className="panel-head"><div><h2>Shadowfax fulfilment</h2><p>Create the shipment on Shadowfax, then enter its AWB here to start tracking.</p></div></div>{loading?<div className="empty-state">Checking shipment…</div>:shipment?<div className="shipment-card"><div><span>AWB</span><strong>{shipment.trackingNumber||'—'}</strong></div><div><span>Status</span><Badge t="info">{shipment.shipmentStatus||shipment.externalStatus||'CREATED'}</Badge></div>{shipment.customerTrackUrl&&<a className="secondary-btn" href={shipment.customerTrackUrl} target="_blank" rel="noreferrer">Track ↗</a>}<button className="secondary-btn" onClick={load}>Sync</button></div>:<div className="shipment-empty"><div><strong>Shipment not linked</strong><p>Create the shipment on the Shadowfax dashboard, then paste the AWB below.</p></div><button className="primary-btn" disabled={busy} onClick={create}>{busy?'Creating…':'Create Shadowfax Shipment in Cerclay'}</button></div>} {!loading&&(!shipment||!shipment.trackingNumber)&&<div className="awb-entry"><label>Shadowfax AWB / Tracking Number<input value={awb} onChange={e=>setAwb(e.target.value)} maxLength={100} placeholder="e.g. SF123456789" disabled={busy}/></label><button className="primary-btn" disabled={busy||!awb.trim()} onClick={assignAwb}>{busy?'Saving…':'Save AWB & Start Tracking'}</button></div>}</div></div></>
-}
-function ProductForm({product,onSaved,onCancel}){
- const [form,setForm]=useState({name:product?.name||'',description:product?.description||'',category:product?.category||'',sku:product?.sku||'',slug:product?.slug||'',price:product?.price??'',mrp:product?.mrp??'',stock:product?.stock??0,active:product?.active??true,featured:product?.featured??false,setOf2Enabled:product?.setOf2Enabled??false,setOf2Price:product?.setOf2Price??'',setOf2Mrp:product?.setOf2Mrp??'',colorGroup:product?.colorGroup||'',colorName:product?.colorName||'',colorHex:product?.colorHex||''});
- const [files,setFiles]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const update=(k,v)=>setForm(f=>({...f,[k]:v}));
- const slugify=s=>s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
- async function submit(e){e.preventDefault();setBusy(true);setError('');try{const saved=await api(product?`/api/products/${product.id}`:'/api/products',{method:product?'PUT':'POST',body:JSON.stringify({...form,price:Number(form.price),mrp:Number(form.mrp),stock:Number(form.stock),active:Boolean(form.active),featured:Boolean(form.featured),setOf2Enabled:Boolean(form.setOf2Enabled),setOf2Price:form.setOf2Enabled && form.setOf2Price!=='' ? Number(form.setOf2Price) : null,setOf2Mrp:form.setOf2Enabled && form.setOf2Mrp!=='' ? Number(form.setOf2Mrp) : null,colorGroup:String(form.colorGroup||'').trim()||null,colorName:String(form.colorName||'').trim()||null,colorHex:String(form.colorHex||'').trim()||null})});let current=normaliseProduct(saved);if(files.length){for(const file of files){const fd=new FormData();fd.append('file',file);const image=await api(`/api/admin/products/${saved.id}/images/upload`,{method:'POST',body:fd});current={...current,images:[...(current.images||[]),image],image:image.primary?image.imageUrl:current.image};}}onSaved(current)}catch(err){setError(err.message||'Unable to save product.')}finally{setBusy(false)}}
- return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><div><div className="eyebrow">CATALOGUE</div><h2>{product?'Edit product':'Add product'}</h2><p>Product data and images are saved to the real Cerclay backend.</p></div><button className="icon-btn" onClick={onCancel}>×</button></div><form className="product-form" onSubmit={submit}><div className="form-grid"><label>Name<input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value,slug:product?f.slug:slugify(e.target.value)}))} required/></label><label>Category<input value={form.category} onChange={e=>update('category',e.target.value)} required/></label><label>SKU<input value={form.sku} onChange={e=>update('sku',e.target.value)} required/></label><label>Slug<input value={form.slug} onChange={e=>update('slug',e.target.value)} required/></label><label>Price<input type="number" min="0" step="0.01" value={form.price} onChange={e=>update('price',e.target.value)} required/></label><label>MRP<input type="number" min="0" step="0.01" value={form.mrp} onChange={e=>update('mrp',e.target.value)} required/></label><label>Opening stock<input type="number" min="0" step="1" value={form.stock} onChange={e=>update('stock',e.target.value)} required/></label><label className="checkbox-field"><input type="checkbox" checked={form.active} onChange={e=>update('active',e.target.checked)}/> Active product</label><label className="checkbox-field"><input type="checkbox" checked={form.featured} onChange={e=>update('featured',e.target.checked)}/> Featured product</label><label className="checkbox-field"><input type="checkbox" checked={form.setOf2Enabled} onChange={e=>update('setOf2Enabled',e.target.checked)}/> Offer a Set of 2</label><label>Set of 2 price<input type="number" min="0" step="0.01" value={form.setOf2Price} onChange={e=>update('setOf2Price',e.target.value)} disabled={!form.setOf2Enabled}/></label><label>Set of 2 MRP <span className="field-hint">(optional)</span><input type="number" min="0" step="0.01" value={form.setOf2Mrp} onChange={e=>update('setOf2Mrp',e.target.value)} disabled={!form.setOf2Enabled}/></label><div className="full-field admin-section-note"><strong>Colour variants</strong><span>Use the same variant group for products that are different colours of the same design. Each colour keeps its own SKU, stock, price and images.</span></div><label>Colour variant group <span className="field-hint">(optional)</span><input value={form.colorGroup} onChange={e=>update('colorGroup',e.target.value)} placeholder="e.g. Bow Ceramic Jar"/><small className="field-help">Enter exactly the same group name on every colour.</small></label><label>Colour name <span className="field-hint">(optional)</span><input value={form.colorName} onChange={e=>update('colorName',e.target.value)} placeholder="e.g. Red" disabled={!form.colorGroup.trim()}/></label><label>Colour swatch <span className="field-hint">(optional)</span><input value={form.colorHex} onChange={e=>update('colorHex',e.target.value)} placeholder="#C45A4A" maxLength="7" disabled={!form.colorGroup.trim()}/><small className="field-help">Use a 6-digit hex colour to show an accurate swatch on the product page.</small></label><label className="full-field">Description<textarea rows="5" value={form.description} onChange={e=>update('description',e.target.value)}/></label><label className="full-field upload-field">Product images<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))}/><small>{files.length?`${files.length} image(s) selected. They upload after the product is saved.`:'Select one or more JPG, PNG or WebP images.'}</small></label></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button type="button" className="secondary-btn" onClick={onCancel}>Cancel</button><button className="primary-btn" disabled={busy}>{busy?'Saving…':'Save product'}</button></div></form></div></div>
-}
-function ProductImages({product,onUpdated}){
- const input=useRef(null); const [busy,setBusy]=useState(false),[msg,setMsg]=useState('');
- async function upload(list){setBusy(true);setMsg('');try{for(const file of Array.from(list)){const fd=new FormData();fd.append('file',file);await api(`/api/admin/products/${product.id}/images/upload`,{method:'POST',body:fd})}const fresh=await api(`/api/products/${product.id}`);onUpdated(normaliseProduct(fresh));setMsg('Images uploaded successfully.')}catch(e){setMsg(e.message)}finally{setBusy(false)}}
- async function primary(id){try{await api(`/api/products/${product.id}/images/${id}/primary`,{method:'PUT'});onUpdated(normaliseProduct(await api(`/api/products/${product.id}`)))}catch(e){setMsg(e.message)}}
- async function remove(id){if(!confirm('Delete this product image?'))return;try{await api(`/api/products/${product.id}/images/${id}`,{method:'DELETE'});onUpdated(normaliseProduct(await api(`/api/products/${product.id}`)))}catch(e){setMsg(e.message)}}
- const images=product.images||[];
- return <><div className="panel-head"><div><h2>Product images</h2><p>Upload, preview, set primary and remove images.</p></div><button className="primary-btn" onClick={()=>input.current?.click()} disabled={busy}>{busy?'Uploading…':'+ Upload images'}</button><input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>{upload(e.target.files);e.target.value=''}}/></div>{msg&&<div className="notice success image-notice">{msg}</div>}<div className="image-grid">{images.length?images.map(img=><div className="image-card" key={img.id}><div className="image-preview"><img src={img.imageUrl} alt="" onError={e=>e.currentTarget.style.display='none'}/></div><div className="image-meta"><strong>{img.primary?'Primary image':'Gallery image'}</strong><small>{img.imageUrl}</small><div className="image-actions">{!img.primary&&<button className="row-btn" onClick={()=>primary(img.id)}>Set primary</button>}<button className="danger-btn" onClick={()=>remove(img.id)}>Delete</button></div></div></div>):<div className="empty-state image-empty">No images yet. Upload the first product image.</div>}</div></>
-}
-function ProductDetail({product,onBack}){
- const [current,setCurrent]=useState(product),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[editing,setEditing]=useState(false);
- async function toggle(){setBusy(true);try{const path=current.active?`/api/products/${current.id}/deactivate`:`/api/products/${current.id}/activate`;const p=await api(path,{method:'PUT'});setCurrent(p);setMsg(`Product ${p.active?'activated':'deactivated'} successfully.`)}catch(e){setMsg(e.message)}finally{setBusy(false)}}
- async function removeProduct(){
-  const message=current.active
-    ? `Remove “${current.name}” from the catalogue? If it has order history, Cerclay will archive it instead of deleting historical data.`
-    : `Remove “${current.name}”? Products with order history will be archived; unused test products will be permanently deleted.`;
-  if(!window.confirm(message)) return;
-  setBusy(true); setMsg('');
-  try{
-    const result=await api(`/api/admin/products/${current.id}`,{method:'DELETE'});
-    if(result===null){ onBack(); return; }
-    if(result?.archived){ onBack(); return; }
-    setCurrent(result); setMsg('Product is linked to order history, so it was archived safely.');
-  }catch(e){setMsg(e.message)}finally{setBusy(false)}
- }
- async function saved(p){setCurrent(p);setEditing(false);setMsg('Product saved successfully.')}
- return <><div className="page-head"><div><button className="back-btn" onClick={onBack}>← Products</button><h1>{current.name}</h1><p className="muted">#{current.id} · {current.sku}</p></div><div className="head-actions"><button className="secondary-btn" onClick={()=>setEditing(true)}>Edit</button><button className="danger-outline-btn" onClick={removeProduct} disabled={busy}>Remove</button><button className={current.active?'danger-outline-btn':'primary-btn'} onClick={toggle} disabled={busy}>{current.active?'Deactivate':'Activate'}</button></div></div><Notice message={msg}/><div className="detail-grid"><div className="panel"><div className="panel-head"><div><h2>Catalogue details</h2><p>Pricing, stock and identifiers.</p></div></div>{[['Category',current.category],['SKU',current.sku],['Slug',current.slug],['Price',money(current.price)],['MRP',money(current.mrp)],['Stock',current.stock],['Status',current.archived?'Archived':current.active?'Active':'Inactive'],['Featured',current.featured?'Yes':'No'],['Set of 2',current.setOf2Enabled?'Enabled':'No'],['Set of 2 Price',current.setOf2Enabled&&current.setOf2Price!=null?money(current.setOf2Price):'—'],['Set of 2 MRP',current.setOf2Enabled&&current.setOf2Mrp!=null?money(current.setOf2Mrp):'—'],['Colour group',current.colorGroup||'—'],['Colour',current.colorName||'—'],['Updated',date(current.updatedAt)]].map(([l,v])=><div className="detail-row" key={l}><span>{l}</span><strong>{v}</strong></div>)}</div><div className="panel"><div className="panel-head"><div><h2>Description</h2><p>Customer-facing content.</p></div></div><div className="description-block">{current.description||'No description added.'}</div></div><div className="panel full"><ProductImages product={current} onUpdated={setCurrent}/></div></div>{editing&&<ProductForm product={current} onSaved={saved} onCancel={()=>setEditing(false)}/>}</>
-}
-function ProductsPage(){
- const [products,setProducts]=useState([]),[loading,setLoading]=useState(true),[q,setQ]=useState(''),[cat,setCat]=useState(''),[status,setStatus]=useState('all'),[modal,setModal]=useState(undefined),[selected,setSelected]=useState(null),[msg,setMsg]=useState('');
- async function load(){setLoading(true);try{setProducts((await api('/api/admin/products')).map(normaliseProduct))}catch(e){setMsg(e.message)}finally{setLoading(false)}}
- useEffect(()=>{load()},[]);
- const cats=useMemo(()=>[...new Set(products.map(p=>p.category).filter(Boolean))].sort(),[products]);const filtered=products.filter(p=>{const haystack=JSON.stringify(p).toLowerCase();const matchesSearch=!q||haystack.includes(q.toLowerCase());const matchesCategory=!cat||String(p.category||'').toLowerCase()===cat.toLowerCase();const matchesStatus=status==='all' ? !p.archived : (status==='active'?p.active&&!p.archived:status==='inactive'?!p.active&&!p.archived:status==='featured'?Boolean(p.featured)&&p.active&&!p.archived:status==='archived'?Boolean(p.archived):true);return matchesSearch&&matchesCategory&&matchesStatus;});
- async function saved(p){setModal(undefined);setSelected(p);setMsg(`Product “${p.name}” saved.`);await load()}
- if(selected)return <ProductDetail product={selected} onBack={()=>setSelected(null)}/>;
- return <><div className="page-head"><div><div className="eyebrow">CATALOGUE</div><h1>Products</h1><p className="muted">Create products, upload images, manage pricing and availability.</p></div><button className="primary-btn" onClick={()=>setModal(null)}>+ Add product</button></div><Notice message={msg}/><div className="toolbar product-toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search product, SKU or slug…"/><select value={cat} onChange={e=>setCat(e.target.value)}><option value="">All categories</option>{cats.map(c=><option key={c}>{c}</option>)}</select><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="featured">Featured</option><option value="archived">Archived</option></select><button className="secondary-btn" onClick={load}>↻</button></div><div className="panel"><div className="table-wrap"><table className="products-table"><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Price / MRP</th><th>Stock</th><th>Status</th><th></th></tr></thead><tbody>{loading?<tr><td colSpan="7"><div className="empty-state">Loading products…</div></td></tr>:filtered.map(p=><tr key={p.id}><td><div className="product-cell"><div className="product-thumb">{p.image?<img src={p.image} alt=""/>:p.images?.[0]?.imageUrl?<img src={p.images[0].imageUrl} alt=""/>:<span>C</span>}</div><div><strong>{p.name}</strong><small>#{p.id} · {p.slug}</small></div></div></td><td>{p.sku}</td><td>{p.category}</td><td><strong>{money(p.price)}</strong><small>MRP {money(p.mrp)}</small></td><td><Badge t={Number(p.stock)>0?'success':'danger'}>{p.stock??0}</Badge></td><td><Badge t={p.archived?'neutral':p.active?'success':'neutral'}>{p.archived?'Archived':p.active?'Active':'Inactive'}</Badge></td><td><div className="row-actions"><button className="row-btn" onClick={()=>setSelected(p)}>Open</button>{!p.archived&&!p.active&&<button className="danger-btn" onClick={async()=>{if(!window.confirm(`Remove “${p.name}”? Unused products will be permanently deleted; products with order history will be archived.`))return;try{const result=await api(`/api/admin/products/${p.id}`,{method:'DELETE'});setMsg(result===null?'Product removed permanently.':'Product has order history and was archived safely.');await load()}catch(e){setMsg(e.message)}}}>Remove</button>}</div></td></tr>)}</tbody></table></div></div>{modal!==undefined&&<ProductForm product={modal} onSaved={saved} onCancel={()=>setModal(undefined)}/>}</>
+function Stat({ label, value, icon, tone = "" }) {
+  return (
+    <div className={`stat-card ${tone}`}>
+      <div className="stat-icon">{icon}</div>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+    </div>
+  );
 }
 
-function InventoryPage(){
- const [products,setProducts]=useState([]),[history,setHistory]=useState([]),[q,setQ]=useState(''),[filter,setFilter]=useState('all'),[busy,setBusy]=useState(null),[msg,setMsg]=useState(''),[error,setError]=useState('');
- async function load(){setError('');try{const [p,h]=await Promise.all([api('/api/admin/products'),api('/api/admin/inventory/history')]);setProducts(Array.isArray(p)?p.map(normaliseProduct):p);setHistory(h)}catch(e){setError(e.message)}}
- useEffect(()=>{load()},[]);
- const list=products.filter(p=>!p.archived).filter(p=>JSON.stringify(p).toLowerCase().includes(q.toLowerCase())).filter(p=>filter==='all'||(filter==='low'?Number(p.stock)>0&&Number(p.stock)<=5:filter==='out'?Number(p.stock)<=0:true));
- const low=list.filter(p=>Number(p.stock)>0&&Number(p.stock)<=5).length;
- const out=list.filter(p=>Number(p.stock)<=0).length;
- async function save(p,stock,reason){setBusy(p.id);setMsg('');setError('');try{await api(`/api/admin/inventory/${p.id}`,{method:'PUT',body:JSON.stringify({newStock:Number(stock),reason:reason||'Manual admin adjustment'})});setMsg(`${p.name} stock updated.`);await load()}catch(e){setError(e.message)}finally{setBusy(null)}}
- return <>
-  <div className="page-head"><div><div className="eyebrow">STOCK CONTROL</div><h1>Inventory</h1><p className="muted">Control stock safely and keep a traceable inventory history.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div>
-  <Notice message={msg}/><Notice message={error} error/>
-  <section className="stat-grid inventory-stats"><Stat label="Tracked products" value={products.length} icon="▤"/><Stat label="Low stock" value={low} icon="!" tone="warm"/><Stat label="Out of stock" value={out} icon="×" tone="sage"/><Stat label="Recent changes" value={history.length} icon="↕"/></section>
-  <div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search product, SKU or category…"/><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All stock</option><option value="low">Low stock (1–5)</option><option value="out">Out of stock</option></select><span className="toolbar-count">{list.length} products</span></div>
-  <div className="panel"><div className="panel-head"><div><h2>Stock levels</h2><p>Use this page for stock-only changes. Product catalogue edits remain separate.</p></div></div><div className="table-wrap"><table className="wide-table"><thead><tr><th>Product</th><th>SKU</th><th>Current stock</th><th>Set stock</th><th>Status</th><th></th></tr></thead><tbody>{list.map(p=><InventoryRow key={p.id} product={p} busy={busy===p.id} onSave={save}/>)}{!list.length&&<tr><td colSpan="6"><div className="empty-state">No products match this stock filter.</div></td></tr>}</tbody></table></div></div>
-  <div className="panel inventory-history"><div className="panel-head"><div><h2>Inventory history</h2><p>The latest stock movements are recorded by the backend.</p></div></div><div className="table-wrap"><table className="wide-table"><thead><tr><th>Date</th><th>Product</th><th>Change</th><th>Stock</th><th>Type</th><th>Reason</th><th>Actor</th></tr></thead><tbody>{history.map(h=><tr key={h.id}><td>{date(h.createdAt)}</td><td><strong>{h.productName}</strong><small>{h.sku}</small></td><td><Badge t={Number(h.changeQuantity)>0?'success':'danger'}>{Number(h.changeQuantity)>0?`+${h.changeQuantity}`:h.changeQuantity}</Badge></td><td>{h.previousStock} → {h.newStock}</td><td>{h.changeType}</td><td>{h.reason||'—'}</td><td>{h.actor||'SYSTEM'}</td></tr>)}{!history.length&&<tr><td colSpan="7"><div className="empty-state">No inventory changes recorded yet.</div></td></tr>}</tbody></table></div></div>
- </>
+function Login({ onLogin }) {
+  const [email, setEmail] = useState(""),
+    [password, setPassword] = useState(""),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState("");
+  async function submit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      onLogin(
+        await api("/api/admin/login", { method: "POST", body: JSON.stringify({ email, password }) })
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <main className="login-shell">
+      <section className="login-card">
+        <div className="brand-mark">C</div>
+        <div className="eyebrow">CONTROL CENTRE</div>
+        <h1>Cerclay Admin</h1>
+        <p className="muted">Secure operations for your Cerclay store.</p>
+        <form onSubmit={submit} className="login-form">
+          <label>
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          {error && <div className="form-error">{error}</div>}
+          <button className="primary-btn wide" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+        <div className="login-footer">Cerclay · secure administration</div>
+      </section>
+    </main>
+  );
 }
-function InventoryRow({product,busy,onSave}){
- const [v,setV]=useState(product.stock??0),[reason,setReason]=useState('');
- useEffect(()=>{setV(product.stock??0)},[product.stock]);
- const stock=Number(product.stock||0);
- const status=stock<=0?'Out of stock':stock<=5?'Low stock':'Healthy';
- return <tr><td><strong>{product.name}</strong><small>{product.category}</small></td><td>{product.sku}</td><td><Badge t={stock>5?'success':stock>0?'warning':'danger'}>{stock}</Badge></td><td><div className="inline-edit inventory-edit"><input type="number" min="0" value={v} onChange={e=>setV(e.target.value)}/><input className="reason-input" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Reason (optional)"/><button className="row-btn" disabled={busy||Number(v)===stock} onClick={()=>onSave(product,v,reason)}>{busy?'Saving…':'Save'}</button></div></td><td><Badge t={stock>5?'success':stock>0?'warning':'danger'}>{status}</Badge></td><td>{Number(v)!==stock&&<span className="muted">Unsaved</span>}</td></tr>
+function Shell({ admin, active, setActive, onLogout, children }) {
+  const [open, setOpen] = useState(false);
+  async function logout() {
+    try {
+      await api("/api/admin/logout", { method: "POST" });
+    } finally {
+      onLogout();
+    }
+  }
+  return (
+    <div className="app-shell">
+      <aside className={`sidebar ${open ? "mobile-open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-mark small">C</div>
+          <div>
+            <strong>Cerclay</strong>
+            <span>Admin</span>
+          </div>
+        </div>
+        <div className="nav-label">MANAGE</div>
+        <nav>
+          {navItems.map(([id, label, icon]) => (
+            <button
+              key={id}
+              className={`nav-item ${active === id ? "active" : ""}`}
+              onClick={() => {
+                setActive(id);
+                setOpen(false);
+              }}
+            >
+              <span className="nav-icon">{icon}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="admin-mini">
+            <div className="avatar">{(admin?.name || "A")[0].toUpperCase()}</div>
+            <div>
+              <strong>{admin?.name || "Administrator"}</strong>
+              <span>{admin?.email || "Admin account"}</span>
+            </div>
+          </div>
+          <button className="logout-btn" onClick={logout}>
+            ↪ <span>Log out</span>
+          </button>
+        </div>
+      </aside>
+      <div className="main-area">
+        <header className="topbar">
+          <button className="mobile-menu" onClick={() => setOpen((v) => !v)}>
+            ☰
+          </button>
+          <div className="topbar-title">{navItems.find((x) => x[0] === active)?.[1]}</div>
+          <div className="topbar-right">
+            <span className="live-dot">●</span> Store online{" "}
+            <div className="top-avatar">{(admin?.name || "A")[0].toUpperCase()}</div>
+          </div>
+        </header>
+        <main className="content">{children}</main>
+      </div>
+    </div>
+  );
 }
 
-function CustomersPage(){
- const [customers,setCustomers]=useState([]),[q,setQ]=useState(''),[selected,setSelected]=useState(null),[msg,setMsg]=useState('');
- async function load(){try{setCustomers(await api('/api/admin/customers'))}catch(e){setMsg(e.message)}}useEffect(()=>{load()},[]);const list=customers.filter(c=>JSON.stringify(c).toLowerCase().includes(q.toLowerCase()));
- async function toggle(c){try{const r=await api(`/api/admin/customers/${c.id}/active`,{method:'PUT',body:JSON.stringify({active:!c.active})});setCustomers(x=>x.map(v=>v.id===r.id?r:v));setMsg(`Customer ${r.active?'activated':'deactivated'}.`)}catch(e){setMsg(e.message)}}
- return <><div className="page-head"><div><div className="eyebrow">CUSTOMERS</div><h1>Customers</h1><p className="muted">Account status, verification and customer details.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg}/><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search name, email or phone…"/><span className="toolbar-count">{list.length} customers</span></div><div className="panel"><div className="table-wrap"><table className="wide-table"><thead><tr><th>Customer</th><th>Phone</th><th>Verification</th><th>Status</th><th></th></tr></thead><tbody>{list.map(c=><tr key={c.id}><td><strong>{c.name}</strong><small>{c.email||'No email'} · #{c.id}</small></td><td>{c.phone||'—'}</td><td><div className="badge-stack"><Badge t={c.emailVerified?'success':'neutral'}>Email {c.emailVerified?'✓':'—'}</Badge><Badge t={c.phoneVerified?'success':'neutral'}>Phone {c.phoneVerified?'✓':'—'}</Badge></div></td><td><Badge t={c.active?'success':'danger'}>{c.active?'Active':'Inactive'}</Badge></td><td><button className="row-btn" onClick={()=>setSelected(c)}>View</button><button className="row-btn" onClick={()=>toggle(c)}>{c.active?'Disable':'Enable'}</button></td></tr>)}</tbody></table></div></div>{selected&&<div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><div><div className="eyebrow">CUSTOMER</div><h2>{selected.name}</h2><p>Customer #{selected.id}</p></div><button className="icon-btn" onClick={()=>setSelected(null)}>×</button></div><div className="address-card"><strong>{selected.email||'No email'}</strong><span>{selected.phone||'No phone'}</span><span>Email verified: {selected.emailVerified?'Yes':'No'}</span><span>Phone verified: {selected.phoneVerified?'Yes':'No'}</span><span>Account: {selected.active?'Active':'Inactive'}</span></div></div></div>}</>
+function Dashboard({ orders, products, customers, onRefresh }) {
+  const [analytics, setAnalytics] = useState(null),
+    [days, setDays] = useState(30),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  async function loadAnalytics(nextDays = days) {
+    setBusy(true);
+    setError("");
+    try {
+      setAnalytics(await api(`/api/admin/dashboard?days=${nextDays}`));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    loadAnalytics(days);
+  }, [days]);
+  const s = analytics?.summary || {};
+  const daily = analytics?.dailySales || [];
+  const maxRevenue = Math.max(1, ...daily.map((x) => Number(x.revenue || 0)));
+  const statusEntries = Object.entries(analytics?.orderStatuses || {}).sort((a, b) => b[1] - a[1]);
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">BUSINESS INTELLIGENCE</div>
+          <h1>Store dashboard</h1>
+          <p className="muted">
+            Sales, customers, catalogue health, returns and reviews in one view.
+          </p>
+        </div>
+        <div className="head-actions">
+          <select
+            className="period-select"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="60">Last 60 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <button
+            className="secondary-btn"
+            onClick={() => {
+              loadAnalytics(days);
+              onRefresh();
+            }}
+            disabled={busy}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+      {error && <Notice message={error} error />}
+      <section className="stat-grid analytics-stats">
+        <Stat label="Gross sales" value={money(s.grossSales)} icon="₹" />
+        <Stat label={`${days}-day sales`} value={money(s.periodSales)} icon="↗" tone="sage" />
+        <Stat label="Net sales" value={money(s.netSales)} icon="≈" />
+        <Stat label="Average order" value={money(s.averageOrderValue)} icon="▣" />
+        <Stat label="Total orders" value={s.totalOrders ?? orders.length} icon="▣" />
+        <Stat label="Customers" value={s.totalCustomers ?? customers.length} icon="♙" />
+        <Stat
+          label="Active products"
+          value={s.activeProducts ?? products.filter((p) => p.active).length}
+          icon="◇"
+        />
+        <Stat label="Refunded" value={money(s.refunded)} icon="↩" tone="warm" />
+      </section>
+      <section className="analytics-grid">
+        <div className="panel analytics-wide">
+          <div className="panel-head">
+            <div>
+              <h2>Sales trend</h2>
+              <p>Gross order value from non-cancelled orders.</p>
+            </div>
+            <Badge t="info">{days} days</Badge>
+          </div>
+          <div className="sales-chart">
+            {daily.map((d, i) => (
+              <div
+                className="sales-bar-wrap"
+                key={d.date}
+                title={`${d.date}: ${money(d.revenue)} · ${d.orders} orders`}
+              >
+                <div
+                  className="sales-bar"
+                  style={{ height: `${Math.max(4, (Number(d.revenue || 0) / maxRevenue) * 100)}%` }}
+                ></div>
+                {(i === 0 ||
+                  i === daily.length - 1 ||
+                  i % Math.max(1, Math.floor(daily.length / 6)) === 0) && (
+                  <span>{d.date.slice(5)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Order status</h2>
+              <p>Current lifecycle distribution.</p>
+            </div>
+          </div>
+          <div className="metric-list">
+            {statusEntries.map(([k, v]) => (
+              <div className="metric-row" key={k}>
+                <span>{k.replaceAll("_", " ")}</span>
+                <strong>{v}</strong>
+              </div>
+            ))}
+            {!statusEntries.length && <div className="empty-state">No orders yet.</div>}
+          </div>
+        </div>
+      </section>
+      <section className="analytics-grid">
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Top products</h2>
+              <p>Units and sales from non-cancelled orders.</p>
+            </div>
+          </div>
+          <div className="top-product-list">
+            {(analytics?.topProducts || []).map((p, i) => (
+              <div className="top-product-row" key={p.productId}>
+                <span className="rank">{i + 1}</span>
+                <div className="top-product-name">
+                  <strong>{p.name}</strong>
+                  <small>{p.quantity} units</small>
+                </div>
+                <strong>{money(p.revenue)}</strong>
+              </div>
+            ))}
+            {!analytics?.topProducts?.length && (
+              <div className="empty-state">No product sales yet.</div>
+            )}
+          </div>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Payments</h2>
+              <p>Sales by payment method.</p>
+            </div>
+          </div>
+          <div className="metric-list">
+            {Object.entries(analytics?.paymentMethods || {}).map(([k, v]) => (
+              <div className="metric-row" key={k}>
+                <span>{k}</span>
+                <strong>{money(v)}</strong>
+              </div>
+            ))}
+            {!Object.keys(analytics?.paymentMethods || {}).length && (
+              <div className="empty-state">No payment data yet.</div>
+            )}
+          </div>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Returns & refunds</h2>
+              <p>Operational after-sales snapshot.</p>
+            </div>
+          </div>
+          <div className="metric-list">
+            <div className="metric-row">
+              <span>Total returns</span>
+              <strong>{analytics?.returns?.total ?? 0}</strong>
+            </div>
+            <div className="metric-row">
+              <span>Needs attention</span>
+              <strong>{analytics?.returns?.pending ?? 0}</strong>
+            </div>
+            <div className="metric-row">
+              <span>Refunded</span>
+              <strong>{money(analytics?.returns?.refunded)}</strong>
+            </div>
+            <div className="metric-row">
+              <span>Pending refunds</span>
+              <strong>{money(analytics?.returns?.pendingRefunds)}</strong>
+            </div>
+          </div>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Reviews</h2>
+              <p>Customer feedback moderation health.</p>
+            </div>
+          </div>
+          <div className="review-health">
+            <div className="review-rating">
+              <strong>{analytics?.reviews?.averageRating ?? "0.0"}</strong>
+              <span>★ average approved rating</span>
+            </div>
+            <div className="review-counts">
+              <span>
+                <b>{analytics?.reviews?.pending ?? 0}</b> pending
+              </span>
+              <span>
+                <b>{analytics?.reviews?.approved ?? 0}</b> published
+              </span>
+              <span>
+                <b>{analytics?.reviews?.rejected ?? 0}</b> rejected
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="stat-grid analytics-bottom">
+        <Stat label="Low stock" value={s.lowStock ?? 0} icon="!" tone="warm" />
+        <Stat label="Out of stock" value={s.outOfStock ?? 0} icon="×" />
+        <Stat label="Active customers" value={s.activeCustomers ?? 0} icon="♙" tone="sage" />
+        <Stat label="Pending refunds" value={money(s.pendingRefunds)} icon="₹" tone="warm" />
+      </section>
+      <section className="dashboard-grid">
+        <div className="panel large-panel">
+          <div className="panel-head">
+            <div>
+              <h2>Recent orders</h2>
+              <p>Latest customer orders.</p>
+            </div>
+          </div>
+          <OrdersTable orders={orders.slice(0, 8)} />
+        </div>
+        <div className="panel quick-panel">
+          <div className="panel-head">
+            <div>
+              <h2>Store snapshot</h2>
+              <p>Catalogue and customer health.</p>
+            </div>
+          </div>
+          <div className="snapshot-row">
+            <span>Active products</span>
+            <strong>{s.activeProducts ?? products.filter((p) => p.active).length}</strong>
+          </div>
+          <div className="snapshot-row">
+            <span>Customers</span>
+            <strong>{s.totalCustomers ?? customers.length}</strong>
+          </div>
+          <div className="snapshot-row">
+            <span>Out of stock</span>
+            <strong>{s.outOfStock ?? products.filter((p) => Number(p.stock) <= 0).length}</strong>
+          </div>
+          <div className="snapshot-row">
+            <span>Orders in period</span>
+            <strong>{s.periodOrders ?? 0}</strong>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+function OrdersTable({ orders, compact = false }) {
+  if (!orders.length) return <div className="empty-state">No orders found.</div>;
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Date</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((o) => (
+            <tr key={o.id}>
+              <td>
+                <strong>{o.orderNumber || `#${o.id}`}</strong>
+                <small>Customer #{o.customerId ?? "—"}</small>
+              </td>
+              <td>{date(o.createdAt)}</td>
+              <td>
+                <Badge t={String(o.paymentStatus).toUpperCase() === "PAID" ? "success" : "warning"}>
+                  {o.paymentStatus || o.paymentMethod || "—"}
+                </Badge>
+              </td>
+              <td>
+                <Badge t={tone(o.orderStatus)}>{o.orderStatus || "—"}</Badge>
+              </td>
+              <td>
+                <strong>{money(o.total)}</strong>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+function OrdersPage({ orders, onRefresh, onSelect }) {
+  const [q, setQ] = useState(""),
+    [status, setStatus] = useState("ALL");
+  const filtered = orders.filter(
+    (o) =>
+      (status === "ALL" || String(o.orderStatus).toUpperCase() === status) &&
+      JSON.stringify(o).toLowerCase().includes(q.toLowerCase())
+  );
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">OPERATIONS</div>
+          <h1>Orders</h1>
+          <p className="muted">Review orders, update fulfilment and create Shadowfax shipments.</p>
+        </div>
+        <button className="secondary-btn" onClick={onRefresh}>
+          ↻ Refresh
+        </button>
+      </div>
+      <div className="toolbar">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search order, customer or status…"
+        />
+        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option>ALL</option>
+          {[
+            "PLACED",
+            "PROCESSING",
+            "PACKED",
+            "SHIPPED",
+            "DELIVERED",
+            "RETURN_REQUESTED",
+            "RETURN_APPROVED",
+            "RETURN_RECEIVED",
+            "REFUND_PENDING",
+            "REFUNDED",
+            "CANCELLED",
+          ].map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+        <span className="toolbar-count">{filtered.length} orders</span>
+      </div>
+      <div className="panel">
+        <div className="table-wrap">
+          <table className="wide-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Created</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o) => (
+                <tr key={o.id}>
+                  <td>
+                    <strong>{o.orderNumber || `#${o.id}`}</strong>
+                  </td>
+                  <td>#{o.customerId ?? "—"}</td>
+                  <td>{date(o.createdAt)}</td>
+                  <td>
+                    <Badge
+                      t={String(o.paymentStatus).toUpperCase() === "PAID" ? "success" : "warning"}
+                    >
+                      {o.paymentStatus || "—"}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge t={tone(o.orderStatus)}>{o.orderStatus || "—"}</Badge>
+                  </td>
+                  <td>{money(o.total)}</td>
+                  <td>
+                    <button className="row-btn" onClick={() => onSelect(o)}>
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!filtered.length && (
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">No matching orders.</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+function OrderDetail({ order, onBack, onRefresh }) {
+  const [shipment, setShipment] = useState(null),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [status, setStatus] = useState(order.orderStatus || "PLACED"),
+    [msg, setMsg] = useState(""),
+    [cancelReason, setCancelReason] = useState(""),
+    [awb, setAwb] = useState("");
+  async function load() {
+    setLoading(true);
+    try {
+      setShipment(await api(`/api/admin/shipments/order/${order.id}`));
+    } catch {
+      setShipment(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, [order.id]);
+  async function create() {
+    setBusy(true);
+    setMsg("");
+    try {
+      const saved = await api(`/api/admin/shadowfax/orders/${order.id}`, { method: "POST" });
+      setShipment(saved);
+      setAwb(saved?.trackingNumber || "");
+      setMsg("Shadowfax shipment created.");
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function assignAwb() {
+    const value = awb.trim();
+    if (!value) {
+      setMsg("Enter the Shadowfax AWB first.");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const saved = await api(`/api/admin/shadowfax/orders/${order.id}/awb`, {
+        method: "POST",
+        body: JSON.stringify({ awb: value }),
+      });
+      setShipment(saved);
+      setAwb(saved?.trackingNumber || value);
+      setMsg("Shadowfax AWB saved. Tracking sync started.");
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveStatus() {
+    if (status === "CANCELLED") {
+      setMsg("Use the Cancel Order action so stock and payment rules are applied safely.");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      await api(`/api/admin/orders/${order.id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+      setMsg("Order status updated.");
+      await onRefresh();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function cancel() {
+    if (!confirm("Cancel this order and restore its reserved stock?")) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await api(`/api/admin/orders/${order.id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      setMsg("Order cancelled and inventory restored.");
+      await onRefresh();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const canCancel = ["PLACED", "PROCESSING", "PACKED"].includes(
+    String(order.orderStatus || "").toUpperCase()
+  );
+  const paidCashfree =
+    String(order.paymentMethod || "").toUpperCase() === "CASHFREE" &&
+    String(order.paymentStatus || "").toUpperCase() === "PAID";
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <button className="back-btn" onClick={onBack}>
+            ← Orders
+          </button>
+          <h1>{order.orderNumber || `Order #${order.id}`}</h1>
+          <p className="muted">Placed {date(order.createdAt)}</p>
+        </div>
+        <Badge t={tone(order.orderStatus)}>{order.orderStatus}</Badge>
+      </div>
+      <Notice message={msg} error={!!msg && !/updated|created|cancelled/.test(msg)} />
+      <div className="detail-grid">
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Order workflow</h2>
+              <p>Admin-controlled status. Cancellation uses a separate protected workflow.</p>
+            </div>
+          </div>
+          <div className="form-inline">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              disabled={order.orderStatus === "CANCELLED"}
+            >
+              {["PLACED", "PROCESSING", "PACKED", "SHIPPED", "DELIVERED"].map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            <button
+              className="primary-btn"
+              disabled={busy || order.orderStatus === "CANCELLED"}
+              onClick={saveStatus}
+            >
+              Save status
+            </button>
+          </div>
+          {canCancel && (
+            <div className="cancel-box">
+              <label>
+                Cancellation reason
+                <input
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="Optional reason"
+                />
+              </label>
+              <button className="danger-btn" disabled={busy} onClick={cancel}>
+                {paidCashfree ? "Cancel order & initiate refund" : "Cancel order & restore stock"}
+              </button>
+              {paidCashfree && (
+                <small>A real Cashfree refund will be initiated as part of cancellation.</small>
+              )}
+            </div>
+          )}
+          <div className="detail-row">
+            <span>Payment</span>
+            <strong>
+              {order.paymentMethod} · {order.paymentStatus}
+            </strong>
+          </div>
+          {order.cancelledAt && (
+            <div className="detail-row">
+              <span>Cancelled</span>
+              <strong>
+                {date(order.cancelledAt)} · {order.cancelledBy || "—"}
+              </strong>
+            </div>
+          )}
+          {order.cancellationReason && (
+            <div className="detail-row">
+              <span>Reason</span>
+              <strong>{order.cancellationReason}</strong>
+            </div>
+          )}
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Delivery address</h2>
+              <p>Snapshot stored on this order.</p>
+            </div>
+          </div>
+          <div className="address-card">
+            <strong>{order.addressName || "—"}</strong>
+            <span>{order.addressPhone || "—"}</span>
+            <span>{order.addressLine1 || ""}</span>
+            <span>{order.addressLine2 || ""}</span>
+            <span>
+              {[order.addressCity, order.addressState, order.addressPincode]
+                .filter(Boolean)
+                .join(", ")}
+            </span>
+          </div>
+        </div>
+        <div className="panel full">
+          <div className="panel-head">
+            <div>
+              <h2>Items</h2>
+              <p>{order.items?.length || 0} line items.</p>
+            </div>
+          </div>
+          <div className="item-list">
+            {(order.items || []).map((i, n) => (
+              <div className="order-item" key={i.id || n}>
+                <div>
+                  <strong>{i.productName}</strong>
+                  <small>
+                    {i.productSku || "No SKU"} · Qty {i.quantity}
+                  </small>
+                </div>
+                <strong>{money(i.total)}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="detail-total">
+            <span>Total</span>
+            <strong>{money(order.total)}</strong>
+          </div>
+        </div>
+        <div className="panel full">
+          <div className="panel-head">
+            <div>
+              <h2>Shadowfax fulfilment</h2>
+              <p>Create the shipment on Shadowfax, then enter its AWB here to start tracking.</p>
+            </div>
+          </div>
+          {loading ? (
+            <div className="empty-state">Checking shipment…</div>
+          ) : shipment ? (
+            <div className="shipment-card">
+              <div>
+                <span>AWB</span>
+                <strong>{shipment.trackingNumber || "—"}</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <Badge t="info">
+                  {shipment.shipmentStatus || shipment.externalStatus || "CREATED"}
+                </Badge>
+              </div>
+              {shipment.customerTrackUrl && (
+                <a
+                  className="secondary-btn"
+                  href={shipment.customerTrackUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Track ↗
+                </a>
+              )}
+              <button className="secondary-btn" onClick={load}>
+                Sync
+              </button>
+            </div>
+          ) : (
+            <div className="shipment-empty">
+              <div>
+                <strong>Shipment not linked</strong>
+                <p>Create the shipment on the Shadowfax dashboard, then paste the AWB below.</p>
+              </div>
+              <button className="primary-btn" disabled={busy} onClick={create}>
+                {busy ? "Creating…" : "Create Shadowfax Shipment in Cerclay"}
+              </button>
+            </div>
+          )}{" "}
+          {!loading && (!shipment || !shipment.trackingNumber) && (
+            <div className="awb-entry">
+              <label>
+                Shadowfax AWB / Tracking Number
+                <input
+                  value={awb}
+                  onChange={(e) => setAwb(e.target.value)}
+                  maxLength={100}
+                  placeholder="e.g. SF123456789"
+                  disabled={busy}
+                />
+              </label>
+              <button className="primary-btn" disabled={busy || !awb.trim()} onClick={assignAwb}>
+                {busy ? "Saving…" : "Save AWB & Start Tracking"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+function ProductForm({ product, onSaved, onCancel }) {
+  const [form, setForm] = useState({
+    name: product?.name || "",
+    description: product?.description || "",
+    category: product?.category || "",
+    sku: product?.sku || "",
+    slug: product?.slug || "",
+    price: product?.price ?? "",
+    mrp: product?.mrp ?? "",
+    stock: product?.stock ?? 0,
+    active: product?.active ?? true,
+    featured: product?.featured ?? false,
+    setOf2Enabled: product?.setOf2Enabled ?? false,
+    setOf2Price: product?.setOf2Price ?? "",
+    setOf2Mrp: product?.setOf2Mrp ?? "",
+    colorGroup: product?.colorGroup || "",
+    colorName: product?.colorName || "",
+    colorHex: product?.colorHex || "",
+  });
+  const [files, setFiles] = useState([]),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const slugify = (s) =>
+    s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const saved = await api(product ? `/api/products/${product.id}` : "/api/products", {
+        method: product ? "PUT" : "POST",
+        body: JSON.stringify({
+          ...form,
+          price: Number(form.price),
+          mrp: Number(form.mrp),
+          stock: Number(form.stock),
+          active: Boolean(form.active),
+          featured: Boolean(form.featured),
+          setOf2Enabled: Boolean(form.setOf2Enabled),
+          setOf2Price:
+            form.setOf2Enabled && form.setOf2Price !== "" ? Number(form.setOf2Price) : null,
+          setOf2Mrp: form.setOf2Enabled && form.setOf2Mrp !== "" ? Number(form.setOf2Mrp) : null,
+          colorGroup: String(form.colorGroup || "").trim() || null,
+          colorName: String(form.colorName || "").trim() || null,
+          colorHex: String(form.colorHex || "").trim() || null,
+        }),
+      });
+      let current = normaliseProduct(saved);
+      if (files.length) {
+        for (const file of files) {
+          const fd = new FormData();
+          fd.append("file", file);
+          const image = await api(`/api/admin/products/${saved.id}/images/upload`, {
+            method: "POST",
+            body: fd,
+          });
+          current = {
+            ...current,
+            images: [...(current.images || []), image],
+            image: image.primary ? image.imageUrl : current.image,
+          };
+        }
+      }
+      onSaved(current);
+    } catch (err) {
+      setError(err.message || "Unable to save product.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="modal-backdrop">
+      <div className="modal">
+        <div className="modal-head">
+          <div>
+            <div className="eyebrow">CATALOGUE</div>
+            <h2>{product ? "Edit product" : "Add product"}</h2>
+            <p>Product data and images are saved to the real Cerclay backend.</p>
+          </div>
+          <button className="icon-btn" onClick={onCancel}>
+            ×
+          </button>
+        </div>
+        <form className="product-form" onSubmit={submit}>
+          <div className="form-grid">
+            <label>
+              Name
+              <input
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    name: e.target.value,
+                    slug: product ? f.slug : slugify(e.target.value),
+                  }))
+                }
+                required
+              />
+            </label>
+            <label>
+              Category
+              <input
+                value={form.category}
+                onChange={(e) => update("category", e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              SKU
+              <input value={form.sku} onChange={(e) => update("sku", e.target.value)} required />
+            </label>
+            <label>
+              Slug
+              <input value={form.slug} onChange={(e) => update("slug", e.target.value)} required />
+            </label>
+            <label>
+              Price
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.price}
+                onChange={(e) => update("price", e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              MRP
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.mrp}
+                onChange={(e) => update("mrp", e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Opening stock
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.stock}
+                onChange={(e) => update("stock", e.target.value)}
+                required
+              />
+            </label>
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => update("active", e.target.checked)}
+              />{" "}
+              Active product
+            </label>
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={(e) => update("featured", e.target.checked)}
+              />{" "}
+              Featured product
+            </label>
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                checked={form.setOf2Enabled}
+                onChange={(e) => update("setOf2Enabled", e.target.checked)}
+              />{" "}
+              Offer a Set of 2
+            </label>
+            <label>
+              Set of 2 price
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.setOf2Price}
+                onChange={(e) => update("setOf2Price", e.target.value)}
+                disabled={!form.setOf2Enabled}
+              />
+            </label>
+            <label>
+              Set of 2 MRP <span className="field-hint">(optional)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.setOf2Mrp}
+                onChange={(e) => update("setOf2Mrp", e.target.value)}
+                disabled={!form.setOf2Enabled}
+              />
+            </label>
+            <div className="full-field admin-section-note">
+              <strong>Colour variants</strong>
+              <span>
+                Use the same variant group for products that are different colours of the same
+                design. Each colour keeps its own SKU, stock, price and images.
+              </span>
+            </div>
+            <label>
+              Colour variant group <span className="field-hint">(optional)</span>
+              <input
+                value={form.colorGroup}
+                onChange={(e) => update("colorGroup", e.target.value)}
+                placeholder="e.g. Bow Ceramic Jar"
+              />
+              <small className="field-help">
+                Enter exactly the same group name on every colour.
+              </small>
+            </label>
+            <label>
+              Colour name <span className="field-hint">(optional)</span>
+              <input
+                value={form.colorName}
+                onChange={(e) => update("colorName", e.target.value)}
+                placeholder="e.g. Red"
+                disabled={!form.colorGroup.trim()}
+              />
+            </label>
+            <label>
+              Colour swatch <span className="field-hint">(optional)</span>
+              <input
+                value={form.colorHex}
+                onChange={(e) => update("colorHex", e.target.value)}
+                placeholder="#C45A4A"
+                maxLength="7"
+                disabled={!form.colorGroup.trim()}
+              />
+              <small className="field-help">
+                Use a 6-digit hex colour to show an accurate swatch on the product page.
+              </small>
+            </label>
+            <label className="full-field">
+              Description
+              <textarea
+                rows="5"
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+              />
+            </label>
+            <label className="full-field upload-field">
+              Product images
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              />
+              <small>
+                {files.length
+                  ? `${files.length} image(s) selected. They upload after the product is saved.`
+                  : "Select one or more JPG, PNG or WebP images."}
+              </small>
+            </label>
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          <div className="modal-actions">
+            <button type="button" className="secondary-btn" onClick={onCancel}>
+              Cancel
+            </button>
+            <button className="primary-btn" disabled={busy}>
+              {busy ? "Saving…" : "Save product"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+function ProductImages({ product, onUpdated }) {
+  const input = useRef(null);
+  const [busy, setBusy] = useState(false),
+    [msg, setMsg] = useState("");
+  async function upload(list) {
+    setBusy(true);
+    setMsg("");
+    try {
+      for (const file of Array.from(list)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        await api(`/api/admin/products/${product.id}/images/upload`, { method: "POST", body: fd });
+      }
+      const fresh = await api(`/api/products/${product.id}`);
+      onUpdated(normaliseProduct(fresh));
+      setMsg("Images uploaded successfully.");
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function primary(id) {
+    try {
+      await api(`/api/products/${product.id}/images/${id}/primary`, { method: "PUT" });
+      onUpdated(normaliseProduct(await api(`/api/products/${product.id}`)));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function remove(id) {
+    if (!confirm("Delete this product image?")) return;
+    try {
+      await api(`/api/products/${product.id}/images/${id}`, { method: "DELETE" });
+      onUpdated(normaliseProduct(await api(`/api/products/${product.id}`)));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  const images = product.images || [];
+  return (
+    <>
+      <div className="panel-head">
+        <div>
+          <h2>Product images</h2>
+          <p>Upload, preview, set primary and remove images.</p>
+        </div>
+        <button className="primary-btn" onClick={() => input.current?.click()} disabled={busy}>
+          {busy ? "Uploading…" : "+ Upload images"}
+        </button>
+        <input
+          ref={input}
+          hidden
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          onChange={(e) => {
+            upload(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+      {msg && <div className="notice success image-notice">{msg}</div>}
+      <div className="image-grid">
+        {images.length ? (
+          images.map((img) => (
+            <div className="image-card" key={img.id}>
+              <div className="image-preview">
+                <img
+                  src={img.imageUrl}
+                  alt=""
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+              </div>
+              <div className="image-meta">
+                <strong>{img.primary ? "Primary image" : "Gallery image"}</strong>
+                <small>{img.imageUrl}</small>
+                <div className="image-actions">
+                  {!img.primary && (
+                    <button className="row-btn" onClick={() => primary(img.id)}>
+                      Set primary
+                    </button>
+                  )}
+                  <button className="danger-btn" onClick={() => remove(img.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="empty-state image-empty">
+            No images yet. Upload the first product image.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+function ProductDetail({ product, onBack }) {
+  const [current, setCurrent] = useState(product),
+    [msg, setMsg] = useState(""),
+    [busy, setBusy] = useState(false),
+    [editing, setEditing] = useState(false);
+  async function toggle() {
+    setBusy(true);
+    try {
+      const path = current.active
+        ? `/api/products/${current.id}/deactivate`
+        : `/api/products/${current.id}/activate`;
+      const p = await api(path, { method: "PUT" });
+      setCurrent(p);
+      setMsg(`Product ${p.active ? "activated" : "deactivated"} successfully.`);
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removeProduct() {
+    const message = current.active
+      ? `Remove “${current.name}” from the catalogue? If it has order history, Cerclay will archive it instead of deleting historical data.`
+      : `Remove “${current.name}”? Products with order history will be archived; unused test products will be permanently deleted.`;
+    if (!window.confirm(message)) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const result = await api(`/api/admin/products/${current.id}`, { method: "DELETE" });
+      if (result === null) {
+        onBack();
+        return;
+      }
+      if (result?.archived) {
+        onBack();
+        return;
+      }
+      setCurrent(result);
+      setMsg("Product is linked to order history, so it was archived safely.");
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saved(p) {
+    setCurrent(p);
+    setEditing(false);
+    setMsg("Product saved successfully.");
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <button className="back-btn" onClick={onBack}>
+            ← Products
+          </button>
+          <h1>{current.name}</h1>
+          <p className="muted">
+            #{current.id} · {current.sku}
+          </p>
+        </div>
+        <div className="head-actions">
+          <button className="secondary-btn" onClick={() => setEditing(true)}>
+            Edit
+          </button>
+          <button className="danger-outline-btn" onClick={removeProduct} disabled={busy}>
+            Remove
+          </button>
+          <button
+            className={current.active ? "danger-outline-btn" : "primary-btn"}
+            onClick={toggle}
+            disabled={busy}
+          >
+            {current.active ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+      </div>
+      <Notice message={msg} />
+      <div className="detail-grid">
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Catalogue details</h2>
+              <p>Pricing, stock and identifiers.</p>
+            </div>
+          </div>
+          {[
+            ["Category", current.category],
+            ["SKU", current.sku],
+            ["Slug", current.slug],
+            ["Price", money(current.price)],
+            ["MRP", money(current.mrp)],
+            ["Stock", current.stock],
+            ["Status", current.archived ? "Archived" : current.active ? "Active" : "Inactive"],
+            ["Featured", current.featured ? "Yes" : "No"],
+            ["Set of 2", current.setOf2Enabled ? "Enabled" : "No"],
+            [
+              "Set of 2 Price",
+              current.setOf2Enabled && current.setOf2Price != null
+                ? money(current.setOf2Price)
+                : "—",
+            ],
+            [
+              "Set of 2 MRP",
+              current.setOf2Enabled && current.setOf2Mrp != null ? money(current.setOf2Mrp) : "—",
+            ],
+            ["Colour group", current.colorGroup || "—"],
+            ["Colour", current.colorName || "—"],
+            ["Updated", date(current.updatedAt)],
+          ].map(([l, v]) => (
+            <div className="detail-row" key={l}>
+              <span>{l}</span>
+              <strong>{v}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Description</h2>
+              <p>Customer-facing content.</p>
+            </div>
+          </div>
+          <div className="description-block">{current.description || "No description added."}</div>
+        </div>
+        <div className="panel full">
+          <ProductImages product={current} onUpdated={setCurrent} />
+        </div>
+      </div>
+      {editing && (
+        <ProductForm product={current} onSaved={saved} onCancel={() => setEditing(false)} />
+      )}
+    </>
+  );
+}
+function ProductsPage() {
+  const [products, setProducts] = useState([]),
+    [loading, setLoading] = useState(true),
+    [q, setQ] = useState(""),
+    [cat, setCat] = useState(""),
+    [status, setStatus] = useState("all"),
+    [modal, setModal] = useState(undefined),
+    [selected, setSelected] = useState(null),
+    [msg, setMsg] = useState("");
+  async function load() {
+    setLoading(true);
+    try {
+      setProducts((await api("/api/admin/products")).map(normaliseProduct));
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const cats = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
+    [products]
+  );
+  const filtered = products.filter((p) => {
+    const haystack = JSON.stringify(p).toLowerCase();
+    const matchesSearch = !q || haystack.includes(q.toLowerCase());
+    const matchesCategory = !cat || String(p.category || "").toLowerCase() === cat.toLowerCase();
+    const matchesStatus =
+      status === "all"
+        ? !p.archived
+        : status === "active"
+          ? p.active && !p.archived
+          : status === "inactive"
+            ? !p.active && !p.archived
+            : status === "featured"
+              ? Boolean(p.featured) && p.active && !p.archived
+              : status === "archived"
+                ? Boolean(p.archived)
+                : true;
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+  async function saved(p) {
+    setModal(undefined);
+    setSelected(p);
+    setMsg(`Product “${p.name}” saved.`);
+    await load();
+  }
+  if (selected) return <ProductDetail product={selected} onBack={() => setSelected(null)} />;
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CATALOGUE</div>
+          <h1>Products</h1>
+          <p className="muted">Create products, upload images, manage pricing and availability.</p>
+        </div>
+        <button className="primary-btn" onClick={() => setModal(null)}>
+          + Add product
+        </button>
+      </div>
+      <Notice message={msg} />
+      <div className="toolbar product-toolbar">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search product, SKU or slug…"
+        />
+        <select value={cat} onChange={(e) => setCat(e.target.value)}>
+          <option value="">All categories</option>
+          {cats.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="all">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="featured">Featured</option>
+          <option value="archived">Archived</option>
+        </select>
+        <button className="secondary-btn" onClick={load}>
+          ↻
+        </button>
+      </div>
+      <div className="panel">
+        <div className="table-wrap">
+          <table className="products-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Price / MRP</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">Loading products…</div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <div className="product-cell">
+                        <div className="product-thumb">
+                          {p.image ? (
+                            <img src={p.image} alt="" />
+                          ) : p.images?.[0]?.imageUrl ? (
+                            <img src={p.images[0].imageUrl} alt="" />
+                          ) : (
+                            <span>C</span>
+                          )}
+                        </div>
+                        <div>
+                          <strong>{p.name}</strong>
+                          <small>
+                            #{p.id} · {p.slug}
+                          </small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{p.sku}</td>
+                    <td>{p.category}</td>
+                    <td>
+                      <strong>{money(p.price)}</strong>
+                      <small>MRP {money(p.mrp)}</small>
+                    </td>
+                    <td>
+                      <Badge t={Number(p.stock) > 0 ? "success" : "danger"}>{p.stock ?? 0}</Badge>
+                    </td>
+                    <td>
+                      <Badge t={p.archived ? "neutral" : p.active ? "success" : "neutral"}>
+                        {p.archived ? "Archived" : p.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="row-btn" onClick={() => setSelected(p)}>
+                          Open
+                        </button>
+                        {!p.archived && !p.active && (
+                          <button
+                            className="danger-btn"
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  `Remove “${p.name}”? Unused products will be permanently deleted; products with order history will be archived.`
+                                )
+                              )
+                                return;
+                              try {
+                                const result = await api(`/api/admin/products/${p.id}`, {
+                                  method: "DELETE",
+                                });
+                                setMsg(
+                                  result === null
+                                    ? "Product removed permanently."
+                                    : "Product has order history and was archived safely."
+                                );
+                                await load();
+                              } catch (e) {
+                                setMsg(e.message);
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {modal !== undefined && (
+        <ProductForm product={modal} onSaved={saved} onCancel={() => setModal(undefined)} />
+      )}
+    </>
+  );
 }
 
-function DiscountsPage(){
- const empty={code:'',type:'PERCENTAGE',value:'',minimumOrderValue:0,maxDiscount:'',startsAt:'',expiresAt:'',usageLimit:'',active:true,firstTimeOnly:false};
- const [items,setItems]=useState([]),[form,setForm]=useState(empty),[editing,setEditing]=useState(null),[msg,setMsg]=useState('');
- async function load(){try{setItems(await api('/api/admin/discounts'))}catch(e){setMsg(e.message)}}useEffect(()=>{load()},[]);const set=(k,v)=>setForm(f=>({...f,[k]:v}));
- async function save(e){e.preventDefault();try{await api(editing?`/api/admin/discounts/${editing}`:'/api/admin/discounts',{method:editing?'PUT':'POST',body:JSON.stringify({...form,value:Number(form.value),minimumOrderValue:Number(form.minimumOrderValue||0),maxDiscount:form.maxDiscount===''?null:Number(form.maxDiscount),usageLimit:form.usageLimit===''?null:Number(form.usageLimit),firstTimeOnly:Boolean(form.firstTimeOnly)})});setForm(empty);setEditing(null);setMsg('Discount saved.');load()}catch(e){setMsg(e.message)}}
- async function del(id){if(!confirm('Delete this discount?'))return;try{await api(`/api/admin/discounts/${id}`,{method:'DELETE'});setMsg('Discount deleted.');load()}catch(e){setMsg(e.message)}}
- return <><div className="page-head"><div><div className="eyebrow">PROMOTIONS</div><h1>Discounts</h1><p className="muted">Create coupon rules used by checkout.</p></div></div><Notice message={msg}/><div className="detail-grid"><div className="panel"><div className="panel-head"><div><h2>{editing?'Edit discount':'Create discount'}</h2><p>Percentage or fixed amount with limits.</p></div></div><form className="product-form" onSubmit={save}><div className="form-grid"><label>Code<input value={form.code} onChange={e=>set('code',e.target.value.toUpperCase())} required/></label><label>Type<select value={form.type} onChange={e=>set('type',e.target.value)}><option>PERCENTAGE</option><option>FIXED</option></select></label><label>Value<input type="number" min="0" step="0.01" value={form.value} onChange={e=>set('value',e.target.value)} required/></label><label>Minimum order<input type="number" min="0" step="0.01" value={form.minimumOrderValue} onChange={e=>set('minimumOrderValue',e.target.value)}/></label><label>Max discount<input type="number" min="0" step="0.01" value={form.maxDiscount} onChange={e=>set('maxDiscount',e.target.value)}/></label><label>Usage limit<input type="number" min="1" value={form.usageLimit} onChange={e=>set('usageLimit',e.target.value)}/></label><label>Starts at<input type="datetime-local" value={form.startsAt} onChange={e=>set('startsAt',e.target.value)}/></label><label>Expires at<input type="datetime-local" value={form.expiresAt} onChange={e=>set('expiresAt',e.target.value)}/></label><label className="checkbox-field"><input type="checkbox" checked={form.active} onChange={e=>set('active',e.target.checked)}/> Active</label><label className="checkbox-field"><input type="checkbox" checked={form.firstTimeOnly} onChange={e=>set('firstTimeOnly',e.target.checked)}/> First-time customers only</label></div><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>{setForm(empty);setEditing(null)}}>Clear</button><button className="primary-btn">{editing?'Update':'Create'} discount</button></div></form></div><div className="panel"><div className="panel-head"><div><h2>Current discounts</h2><p>Codes configured in the database.</p></div></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Rule</th><th>Validity</th><th>Audience</th><th>Usage</th><th></th></tr></thead><tbody>{items.map(d=><tr key={d.id}><td><strong>{d.code}</strong></td><td>{d.type==='PERCENTAGE'?`${d.value}% off`:`${money(d.value)} off`}<small>Min {money(d.minimumOrderValue)}</small></td><td><Badge t={d.active?'success':'neutral'}>{d.active?'Active':'Inactive'}</Badge><small>{d.expiresAt?`Until ${date(d.expiresAt)}`:'No expiry'}</small></td><td>{d.firstTimeOnly?'First order':'All customers'}</td><td>{d.usageCount}{d.usageLimit?` / ${d.usageLimit}`:' / ∞'}</td><td><button className="row-btn" onClick={()=>{setEditing(d.id);setForm({...d,startsAt:d.startsAt?.slice(0,16)||'',expiresAt:d.expiresAt?.slice(0,16)||'',maxDiscount:d.maxDiscount??'',usageLimit:d.usageLimit??'',firstTimeOnly:Boolean(d.firstTimeOnly)})}}>Edit</button><button className="danger-btn" onClick={()=>del(d.id)}>Delete</button></td></tr>)}{!items.length&&<tr><td colSpan="6"><div className="empty-state">No discounts yet.</div></td></tr>}</tbody></table></div></div></div></>
+function InventoryPage() {
+  const [products, setProducts] = useState([]),
+    [history, setHistory] = useState([]),
+    [q, setQ] = useState(""),
+    [filter, setFilter] = useState("all"),
+    [busy, setBusy] = useState(null),
+    [msg, setMsg] = useState(""),
+    [error, setError] = useState("");
+  async function load() {
+    setError("");
+    try {
+      const [p, h] = await Promise.all([
+        api("/api/admin/products"),
+        api("/api/admin/inventory/history"),
+      ]);
+      setProducts(Array.isArray(p) ? p.map(normaliseProduct) : p);
+      setHistory(h);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const list = products
+    .filter((p) => !p.archived)
+    .filter((p) => JSON.stringify(p).toLowerCase().includes(q.toLowerCase()))
+    .filter(
+      (p) =>
+        filter === "all" ||
+        (filter === "low"
+          ? Number(p.stock) > 0 && Number(p.stock) <= 5
+          : filter === "out"
+            ? Number(p.stock) <= 0
+            : true)
+    );
+  const low = list.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).length;
+  const out = list.filter((p) => Number(p.stock) <= 0).length;
+  async function save(p, stock, reason) {
+    setBusy(p.id);
+    setMsg("");
+    setError("");
+    try {
+      await api(`/api/admin/inventory/${p.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          newStock: Number(stock),
+          reason: reason || "Manual admin adjustment",
+        }),
+      });
+      setMsg(`${p.name} stock updated.`);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">STOCK CONTROL</div>
+          <h1>Inventory</h1>
+          <p className="muted">Control stock safely and keep a traceable inventory history.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      <Notice message={error} error />
+      <section className="stat-grid inventory-stats">
+        <Stat label="Tracked products" value={products.length} icon="▤" />
+        <Stat label="Low stock" value={low} icon="!" tone="warm" />
+        <Stat label="Out of stock" value={out} icon="×" tone="sage" />
+        <Stat label="Recent changes" value={history.length} icon="↕" />
+      </section>
+      <div className="toolbar">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search product, SKU or category…"
+        />
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">All stock</option>
+          <option value="low">Low stock (1–5)</option>
+          <option value="out">Out of stock</option>
+        </select>
+        <span className="toolbar-count">{list.length} products</span>
+      </div>
+      <div className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Stock levels</h2>
+            <p>Use this page for stock-only changes. Product catalogue edits remain separate.</p>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="wide-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Current stock</th>
+                <th>Set stock</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((p) => (
+                <InventoryRow key={p.id} product={p} busy={busy === p.id} onSave={save} />
+              ))}
+              {!list.length && (
+                <tr>
+                  <td colSpan="6">
+                    <div className="empty-state">No products match this stock filter.</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="panel inventory-history">
+        <div className="panel-head">
+          <div>
+            <h2>Inventory history</h2>
+            <p>The latest stock movements are recorded by the backend.</p>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="wide-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Change</th>
+                <th>Stock</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Actor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((h) => (
+                <tr key={h.id}>
+                  <td>{date(h.createdAt)}</td>
+                  <td>
+                    <strong>{h.productName}</strong>
+                    <small>{h.sku}</small>
+                  </td>
+                  <td>
+                    <Badge t={Number(h.changeQuantity) > 0 ? "success" : "danger"}>
+                      {Number(h.changeQuantity) > 0 ? `+${h.changeQuantity}` : h.changeQuantity}
+                    </Badge>
+                  </td>
+                  <td>
+                    {h.previousStock} → {h.newStock}
+                  </td>
+                  <td>{h.changeType}</td>
+                  <td>{h.reason || "—"}</td>
+                  <td>{h.actor || "SYSTEM"}</td>
+                </tr>
+              ))}
+              {!history.length && (
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">No inventory changes recorded yet.</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+function InventoryRow({ product, busy, onSave }) {
+  const [v, setV] = useState(product.stock ?? 0),
+    [reason, setReason] = useState("");
+  useEffect(() => {
+    setV(product.stock ?? 0);
+  }, [product.stock]);
+  const stock = Number(product.stock || 0);
+  const status = stock <= 0 ? "Out of stock" : stock <= 5 ? "Low stock" : "Healthy";
+  return (
+    <tr>
+      <td>
+        <strong>{product.name}</strong>
+        <small>{product.category}</small>
+      </td>
+      <td>{product.sku}</td>
+      <td>
+        <Badge t={stock > 5 ? "success" : stock > 0 ? "warning" : "danger"}>{stock}</Badge>
+      </td>
+      <td>
+        <div className="inline-edit inventory-edit">
+          <input type="number" min="0" value={v} onChange={(e) => setV(e.target.value)} />
+          <input
+            className="reason-input"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Reason (optional)"
+          />
+          <button
+            className="row-btn"
+            disabled={busy || Number(v) === stock}
+            onClick={() => onSave(product, v, reason)}
+          >
+            {busy ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </td>
+      <td>
+        <Badge t={stock > 5 ? "success" : stock > 0 ? "warning" : "danger"}>{status}</Badge>
+      </td>
+      <td>{Number(v) !== stock && <span className="muted">Unsaved</span>}</td>
+    </tr>
+  );
 }
 
-function ShippingPage(){
- const [zones,setZones]=useState([]),[pins,setPins]=useState([]),[msg,setMsg]=useState(''),[zoneEditing,setZoneEditing]=useState(false),[pinEditing,setPinEditing]=useState(false),[zoneId,setZoneId]=useState(null),[pinId,setPinId]=useState(null);
- const emptyZone={code:'',name:'',shadowfaxBaseRate:0,customerCharge:0,freeDeliveryThreshold:0,codCharge:0,active:true};
- const emptyPin={pincode:'',zoneId:'',customerChargeOverride:'',freeDeliveryThresholdOverride:'',codChargeOverride:'',active:true};
- const [zf,setZf]=useState(emptyZone),[pf,setPf]=useState(emptyPin);
- async function load(){try{const [z,p]=await Promise.all([api('/api/admin/shipping/zones'),api('/api/admin/shipping/pincodes')]);setZones(z);setPins(p)}catch(e){setMsg(e.message)}}
- useEffect(()=>{load()},[]);
- async function saveZone(e){e.preventDefault();try{await api(zoneId?`/api/admin/shipping/zones/${zoneId}`:'/api/admin/shipping/zones',{method:zoneId?'PUT':'POST',body:JSON.stringify({...zf,shadowfaxBaseRate:Number(zf.shadowfaxBaseRate),customerCharge:Number(zf.customerCharge),freeDeliveryThreshold:Number(zf.freeDeliveryThreshold),codCharge:Number(zf.codCharge)})});setZoneEditing(false);setZoneId(null);setZf(emptyZone);setMsg('Zone saved.');load()}catch(e){setMsg(e.message)}}
- async function savePin(e){e.preventDefault();try{await api(pinId?`/api/admin/shipping/pincodes/${pinId}`:'/api/admin/shipping/pincodes',{method:pinId?'PUT':'POST',body:JSON.stringify({...pf,zoneId:Number(pf.zoneId),customerChargeOverride:pf.customerChargeOverride===''?null:Number(pf.customerChargeOverride),freeDeliveryThresholdOverride:pf.freeDeliveryThresholdOverride===''?null:Number(pf.freeDeliveryThresholdOverride),codChargeOverride:pf.codChargeOverride===''?null:Number(pf.codChargeOverride)})});setPinEditing(false);setPinId(null);setPf(emptyPin);setMsg('Pincode rule saved.');load()}catch(e){setMsg(e.message)}}
- async function delPin(id){if(!confirm('Delete this pincode override?'))return;try{await api(`/api/admin/shipping/pincodes/${id}`,{method:'DELETE'});setMsg('Pincode override deleted.');load()}catch(e){setMsg(e.message)}}
- return <><div className="page-head"><div><div className="eyebrow">FULFILMENT</div><h1>Shipping</h1><p className="muted">Distance-based Zone A–E pricing and pincode overrides.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg}/>
- {zoneEditing&&<div className="panel"><div className="panel-head"><div><h2>{zoneId?'Edit zone':'Add zone'}</h2><p>Customer pricing and COD rules.</p></div></div><form className="product-form" onSubmit={saveZone}><div className="form-grid"><label>Code<input value={zf.code} onChange={e=>setZf({...zf,code:e.target.value.toUpperCase()})} required/></label><label>Name<input value={zf.name} onChange={e=>setZf({...zf,name:e.target.value})} required/></label><label>Shadowfax base rate<input type="number" min="0" step="0.01" value={zf.shadowfaxBaseRate} onChange={e=>setZf({...zf,shadowfaxBaseRate:e.target.value})}/></label><label>Customer charge<input type="number" min="0" step="0.01" value={zf.customerCharge} onChange={e=>setZf({...zf,customerCharge:e.target.value})}/></label><label>Free delivery threshold<input type="number" min="0" step="0.01" value={zf.freeDeliveryThreshold} onChange={e=>setZf({...zf,freeDeliveryThreshold:e.target.value})}/></label><label>COD charge<input type="number" min="0" step="0.01" value={zf.codCharge} onChange={e=>setZf({...zf,codCharge:e.target.value})}/></label><label className="checkbox-field"><input type="checkbox" checked={zf.active} onChange={e=>setZf({...zf,active:e.target.checked})}/> Active</label></div><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>setZoneEditing(false)}>Cancel</button><button className="primary-btn">Save zone</button></div></form></div>}
- <div className="panel"><div className="panel-head"><div><h2>Shipping zones</h2><p>Customer charge is independent from Shadowfax logistics cost.</p></div><button className="primary-btn" onClick={()=>{setZoneId(null);setZf(emptyZone);setZoneEditing(true)}}>+ Add zone</button></div><div className="table-wrap"><table><thead><tr><th>Zone</th><th>Shadowfax base</th><th>Customer charge</th><th>Free delivery</th><th>COD</th><th></th></tr></thead><tbody>{zones.map(z=><tr key={z.id}><td><strong>{z.code}</strong><small>{z.name}</small></td><td>{money(z.shadowfaxBaseRate)}</td><td>{money(z.customerCharge)}</td><td>{money(z.freeDeliveryThreshold)}</td><td>{money(z.codCharge)}</td><td><button className="row-btn" onClick={()=>{setZoneId(z.id);setZf(z);setZoneEditing(true)}}>Edit</button></td></tr>)}</tbody></table></div></div>
- {pinEditing&&<div className="panel"><div className="panel-head"><div><h2>{pinId?'Edit pincode override':'Add pincode override'}</h2><p>Explicit mapping takes precedence over automatic zone classification.</p></div></div><form className="product-form" onSubmit={savePin}><div className="form-grid"><label>Pincode<input value={pf.pincode} onChange={e=>setPf({...pf,pincode:e.target.value})} maxLength="6" required/></label><label>Zone<select value={pf.zoneId} onChange={e=>setPf({...pf,zoneId:e.target.value})} required><option value="">Select zone</option>{zones.map(z=><option key={z.id} value={z.id}>{z.code} · {z.name}</option>)}</select></label><label>Customer charge override<input type="number" min="0" step="0.01" value={pf.customerChargeOverride} onChange={e=>setPf({...pf,customerChargeOverride:e.target.value})}/></label><label>Free threshold override<input type="number" min="0" step="0.01" value={pf.freeDeliveryThresholdOverride} onChange={e=>setPf({...pf,freeDeliveryThresholdOverride:e.target.value})}/></label><label>COD charge override<input type="number" min="0" step="0.01" value={pf.codChargeOverride} onChange={e=>setPf({...pf,codChargeOverride:e.target.value})}/></label><label className="checkbox-field"><input type="checkbox" checked={pf.active} onChange={e=>setPf({...pf,active:e.target.checked})}/> Active</label></div><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>setPinEditing(false)}>Cancel</button><button className="primary-btn">Save override</button></div></form></div>}
- <div className="panel"><div className="panel-head"><div><h2>Pincode overrides</h2><p>Manage exceptional locations without code changes.</p></div><button className="primary-btn" onClick={()=>{setPinId(null);setPf(emptyPin);setPinEditing(true)}}>+ Add pincode</button></div><div className="table-wrap"><table><thead><tr><th>Pincode</th><th>Zone</th><th>Charge</th><th>Free threshold</th><th>COD</th><th></th></tr></thead><tbody>{pins.map(p=><tr key={p.id}><td><strong>{p.pincode}</strong></td><td>{p.zoneCode||p.zoneName||p.zoneId}</td><td>{p.customerChargeOverride==null?'Zone default':money(p.customerChargeOverride)}</td><td>{p.freeDeliveryThresholdOverride==null?'Zone default':money(p.freeDeliveryThresholdOverride)}</td><td>{p.codChargeOverride==null?'Zone default':money(p.codChargeOverride)}</td><td><button className="row-btn" onClick={()=>{setPinId(p.id);setPf({...p,zoneId:p.zoneId});setPinEditing(true)}}>Edit</button><button className="danger-btn" onClick={()=>delPin(p.id)}>Delete</button></td></tr>)}</tbody></table></div></div></>
+function CustomersPage() {
+  const [customers, setCustomers] = useState([]),
+    [q, setQ] = useState(""),
+    [selected, setSelected] = useState(null),
+    [msg, setMsg] = useState("");
+  async function load() {
+    try {
+      setCustomers(await api("/api/admin/customers"));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const list = customers.filter((c) => JSON.stringify(c).toLowerCase().includes(q.toLowerCase()));
+  async function toggle(c) {
+    try {
+      const r = await api(`/api/admin/customers/${c.id}/active`, {
+        method: "PUT",
+        body: JSON.stringify({ active: !c.active }),
+      });
+      setCustomers((x) => x.map((v) => (v.id === r.id ? r : v)));
+      setMsg(`Customer ${r.active ? "activated" : "deactivated"}.`);
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CUSTOMERS</div>
+          <h1>Customers</h1>
+          <p className="muted">Account status, verification and customer details.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      <div className="toolbar">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name, email or phone…"
+        />
+        <span className="toolbar-count">{list.length} customers</span>
+      </div>
+      <div className="panel">
+        <div className="table-wrap">
+          <table className="wide-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Verification</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <strong>{c.name}</strong>
+                    <small>
+                      {c.email || "No email"} · #{c.id}
+                    </small>
+                  </td>
+                  <td>{c.phone || "—"}</td>
+                  <td>
+                    <div className="badge-stack">
+                      <Badge t={c.emailVerified ? "success" : "neutral"}>
+                        Email {c.emailVerified ? "✓" : "—"}
+                      </Badge>
+                      <Badge t={c.phoneVerified ? "success" : "neutral"}>
+                        Phone {c.phoneVerified ? "✓" : "—"}
+                      </Badge>
+                    </div>
+                  </td>
+                  <td>
+                    <Badge t={c.active ? "success" : "danger"}>
+                      {c.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </td>
+                  <td>
+                    <button className="row-btn" onClick={() => setSelected(c)}>
+                      View
+                    </button>
+                    <button className="row-btn" onClick={() => toggle(c)}>
+                      {c.active ? "Disable" : "Enable"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {selected && (
+        <div className="modal-backdrop" onClick={() => setSelected(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <div className="eyebrow">CUSTOMER</div>
+                <h2>{selected.name}</h2>
+                <p>Customer #{selected.id}</p>
+              </div>
+              <button className="icon-btn" onClick={() => setSelected(null)}>
+                ×
+              </button>
+            </div>
+            <div className="address-card">
+              <strong>{selected.email || "No email"}</strong>
+              <span>{selected.phone || "No phone"}</span>
+              <span>Email verified: {selected.emailVerified ? "Yes" : "No"}</span>
+              <span>Phone verified: {selected.phoneVerified ? "Yes" : "No"}</span>
+              <span>Account: {selected.active ? "Active" : "Inactive"}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
-function PaymentsPage(){
- const [payments,setPayments]=useState([]),[q,setQ]=useState(''),[msg,setMsg]=useState('');async function load(){try{setPayments(await api('/api/admin/payments'))}catch(e){setMsg(e.message)}}useEffect(()=>{load()},[]);const list=payments.filter(p=>JSON.stringify(p).toLowerCase().includes(q.toLowerCase()));
- return <><div className="page-head"><div><div className="eyebrow">FINANCE</div><h1>Payments</h1><p className="muted">Cashfree and COD payment records for reconciliation.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg}/><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search order, Cashfree ID or status…"/><span className="toolbar-count">{list.length} payments</span></div><div className="panel"><div className="table-wrap"><table className="wide-table"><thead><tr><th>Order</th><th>Amount</th><th>Method</th><th>Cashfree payment</th><th>Status</th><th>Updated</th></tr></thead><tbody>{list.map(p=><tr key={p.id}><td><strong>{p.orderNumber||`#${p.orderId}`}</strong><small>{p.cashfreeOrderId||p.razorpayOrderId||'—'}</small></td><td>{money(p.amount)}</td><td>{p.paymentMethod||'—'}</td><td>{p.cashfreePaymentId||p.razorpayPaymentId||'Not captured'}</td><td><Badge t={tone(p.paymentStatus)}>{p.paymentStatus}</Badge></td><td>{date(p.updatedAt)}</td></tr>)}</tbody></table></div></div></>
-}
-function CommunicationsPage(){
- const [templates,setTemplates]=useState([]),[history,setHistory]=useState([]),[selected,setSelected]=useState(null),[msg,setMsg]=useState(''),[tab,setTab]=useState('templates');
- async function load(){try{const [t,h]=await Promise.all([api('/api/admin/notifications/templates'),api('/api/admin/notifications/history')]);setTemplates(t);setHistory(h);if(!selected&&t.length)setSelected(t[0].eventType)}catch(e){setMsg(e.message)}}
- useEffect(()=>{load()},[]);
- const current=templates.find(t=>t.eventType===selected);
- async function save(e){e.preventDefault();if(!current)return;try{const saved=await api(`/api/admin/notifications/templates/${current.eventType}`,{method:'PUT',body:JSON.stringify({enabled:current.enabled,subjectTemplate:current.subjectTemplate,bodyTemplate:current.bodyTemplate})});setTemplates(x=>x.map(t=>t.eventType===saved.eventType?saved:t));setMsg('Notification template saved.')}catch(e){setMsg(e.message)}}
- return <><div className="page-head"><div><div className="eyebrow">CUSTOMER COMMUNICATION</div><h1>Communications</h1><p className="muted">Manage customer email templates and delivery history.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg}/><div className="tab-row"><button className={tab==='templates'?'tab-btn active':'tab-btn'} onClick={()=>setTab('templates')}>Email templates</button><button className={tab==='history'?'tab-btn active':'tab-btn'} onClick={()=>setTab('history')}>Delivery history</button></div>{tab==='templates'?<div className="detail-grid"><div className="panel"><div className="panel-head"><div><h2>Events</h2><p>Disable any customer email without changing code.</p></div></div><div className="communication-events">{templates.map(t=><button key={t.eventType} className={selected===t.eventType?'communication-event active':'communication-event'} onClick={()=>setSelected(t.eventType)}><strong>{t.eventType.replaceAll('_',' ')}</strong><Badge t={t.enabled?'success':'neutral'}>{t.enabled?'Enabled':'Disabled'}</Badge></button>)}</div></div><div className="panel">{current?<form className="product-form" onSubmit={save}><div className="panel-head"><div><h2>{current.eventType.replaceAll('_',' ')}</h2><p>Available placeholders: {'{{customerName}}'}, {'{{orderNumber}}'}, {'{{total}}'}, {'{{paymentMethod}}'}, {'{{status}}'}, {'{{trackingNumber}}'}, {'{{trackingUrl}}'}.</p></div></div><label className="checkbox-field"><input type="checkbox" checked={current.enabled} onChange={e=>setTemplates(ts=>ts.map(t=>t.eventType===current.eventType?{...t,enabled:e.target.checked}:t))}/> Enabled</label><label>Subject<input value={current.subjectTemplate} onChange={e=>setTemplates(ts=>ts.map(t=>t.eventType===current.eventType?{...t,subjectTemplate:e.target.value}:t))} required/></label><label>Body<textarea rows="12" value={current.bodyTemplate} onChange={e=>setTemplates(ts=>ts.map(t=>t.eventType===current.eventType?{...t,bodyTemplate:e.target.value}:t))} required/></label><div className="modal-actions"><button className="primary-btn">Save template</button></div></form>:<div className="empty-state">No notification templates available.</div>}</div></div>:<div className="panel"><div className="panel-head"><div><h2>Delivery history</h2><p>Queued, sent and failed email notifications.</p></div></div><div className="table-wrap"><table className="wide-table"><thead><tr><th>Event</th><th>Recipient</th><th>Order</th><th>Status</th><th>Attempts</th><th>Created</th><th>Sent</th></tr></thead><tbody>{history.map(n=><tr key={n.id}><td>{String(n.eventType).replaceAll('_',' ')}</td><td>{n.recipientEmail}</td><td>{n.orderId?`#${n.orderId}`:'—'}</td><td><Badge t={tone(n.status)}>{n.status}</Badge></td><td>{n.attemptCount}</td><td>{date(n.createdAt)}</td><td>{date(n.sentAt)}</td></tr>)}{!history.length&&<tr><td colSpan="7"><div className="empty-state">No notification history yet.</div></td></tr>}</tbody></table></div></div>}</>
-}
-function ReturnsPage(){
- const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[msg,setMsg]=useState('');
- async function load(){setLoading(true);try{setRows(await api('/api/admin/returns'))}catch(e){setMsg(e.message)}finally{setLoading(false)}}
- useEffect(()=>{load()},[]);
- async function action(id,path,body={},success='Updated.'){try{setMsg('');await api(`/api/admin/returns/${id}/${path}`,{method:'POST',body:JSON.stringify(body)});setMsg(success);await load()}catch(e){setMsg(e.message)}}
- async function refund(r){const max=Number(r.refundableAmount||0);const value=prompt(`Refund amount (max ₹${max.toFixed(2)}):`,String(max.toFixed(2)));if(value===null)return;const amount=Number(value);if(!Number.isFinite(amount)||amount<=0||amount>max){setMsg('Enter a valid refund amount within the remaining refundable amount.');return}await action(r.id,'refund',{amount,reason:'Return refund'},'Refund initiated.');}
- return <><div className="page-head"><div><div className="eyebrow">RETURNS & REFUNDS</div><h1>Returns</h1><p className="muted">Review returns, receive items and manage real refunds.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg} error={!!msg&&!/Updated|initiated|processed/.test(msg)}/>{loading?<div className="empty-state">Loading returns…</div>:<div className="panel"><div className="table-wrap"><table className="wide-table"><thead><tr><th>Return</th><th>Order</th><th>Reason</th><th>Status</th><th>Refundable</th><th>Refunded</th><th>Actions</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td><strong>#{r.id}</strong><small>{date(r.requestedAt)}</small></td><td><strong>{r.orderNumber||`#${r.orderId}`}</strong></td><td>{r.reason}</td><td><Badge t={tone(r.status)}>{r.status}</Badge></td><td>{money(r.refundableAmount)}</td><td>{money(r.refundedAmount)}</td><td><div className="action-row">{r.status==='REQUESTED'&&<><button className="row-btn" onClick={()=>action(r.id,'approve',{},'Return approved.')}>Approve</button><button className="row-btn danger-text" onClick={()=>action(r.id,'reject',{note:'Return rejected by admin'},'Return rejected.')}>Reject</button></>}{r.status==='APPROVED'&&<button className="row-btn" onClick={()=>action(r.id,'received',{},'Return marked received.')}>Mark received</button>}{(r.status==='RECEIVED'||r.status==='REFUND_PENDING')&&Number(r.refundableAmount||0)>0&&<button className="row-btn" onClick={()=>refund(r)}>Refund</button>}{r.status==='REFUNDED'&&<button className="row-btn" onClick={()=>action(r.id,'close',{},'Return closed.')}>Close</button>}{(r.refunds||[]).filter(x=>x.status==='MANUAL_PENDING').map(x=><button key={x.id} className="row-btn" onClick={async()=>{try{await api(`/api/admin/returns/refunds/${x.id}/manual-processed`,{method:'POST'});setMsg('Manual refund marked processed.');await load()}catch(e){setMsg(e.message)}}}>Mark COD refund paid</button>)}</div></td></tr>)}{!rows.length&&<tr><td colSpan="7"><div className="empty-state">No return requests yet.</div></td></tr>}</tbody></table></div></div>}</>
+function DiscountsPage() {
+  const empty = {
+    code: "",
+    type: "PERCENTAGE",
+    value: "",
+    minimumOrderValue: 0,
+    maxDiscount: "",
+    startsAt: "",
+    expiresAt: "",
+    usageLimit: "",
+    active: true,
+    firstTimeOnly: false,
+  };
+  const [items, setItems] = useState([]),
+    [form, setForm] = useState(empty),
+    [editing, setEditing] = useState(null),
+    [msg, setMsg] = useState("");
+  async function load() {
+    try {
+      setItems(await api("/api/admin/discounts"));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  async function save(e) {
+    e.preventDefault();
+    try {
+      await api(editing ? `/api/admin/discounts/${editing}` : "/api/admin/discounts", {
+        method: editing ? "PUT" : "POST",
+        body: JSON.stringify({
+          ...form,
+          value: Number(form.value),
+          minimumOrderValue: Number(form.minimumOrderValue || 0),
+          maxDiscount: form.maxDiscount === "" ? null : Number(form.maxDiscount),
+          usageLimit: form.usageLimit === "" ? null : Number(form.usageLimit),
+          firstTimeOnly: Boolean(form.firstTimeOnly),
+        }),
+      });
+      setForm(empty);
+      setEditing(null);
+      setMsg("Discount saved.");
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function del(id) {
+    if (!confirm("Delete this discount?")) return;
+    try {
+      await api(`/api/admin/discounts/${id}`, { method: "DELETE" });
+      setMsg("Discount deleted.");
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">PROMOTIONS</div>
+          <h1>Discounts</h1>
+          <p className="muted">Create coupon rules used by checkout.</p>
+        </div>
+      </div>
+      <Notice message={msg} />
+      <div className="detail-grid">
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>{editing ? "Edit discount" : "Create discount"}</h2>
+              <p>Percentage or fixed amount with limits.</p>
+            </div>
+          </div>
+          <form className="product-form" onSubmit={save}>
+            <div className="form-grid">
+              <label>
+                Code
+                <input
+                  value={form.code}
+                  onChange={(e) => set("code", e.target.value.toUpperCase())}
+                  required
+                />
+              </label>
+              <label>
+                Type
+                <select value={form.type} onChange={(e) => set("type", e.target.value)}>
+                  <option>PERCENTAGE</option>
+                  <option>FIXED</option>
+                </select>
+              </label>
+              <label>
+                Value
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.value}
+                  onChange={(e) => set("value", e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Minimum order
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.minimumOrderValue}
+                  onChange={(e) => set("minimumOrderValue", e.target.value)}
+                />
+              </label>
+              <label>
+                Max discount
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.maxDiscount}
+                  onChange={(e) => set("maxDiscount", e.target.value)}
+                />
+              </label>
+              <label>
+                Usage limit
+                <input
+                  type="number"
+                  min="1"
+                  value={form.usageLimit}
+                  onChange={(e) => set("usageLimit", e.target.value)}
+                />
+              </label>
+              <label>
+                Starts at
+                <input
+                  type="datetime-local"
+                  value={form.startsAt}
+                  onChange={(e) => set("startsAt", e.target.value)}
+                />
+              </label>
+              <label>
+                Expires at
+                <input
+                  type="datetime-local"
+                  value={form.expiresAt}
+                  onChange={(e) => set("expiresAt", e.target.value)}
+                />
+              </label>
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(e) => set("active", e.target.checked)}
+                />{" "}
+                Active
+              </label>
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={form.firstTimeOnly}
+                  onChange={(e) => set("firstTimeOnly", e.target.checked)}
+                />{" "}
+                First-time customers only
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  setForm(empty);
+                  setEditing(null);
+                }}
+              >
+                Clear
+              </button>
+              <button className="primary-btn">{editing ? "Update" : "Create"} discount</button>
+            </div>
+          </form>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Current discounts</h2>
+              <p>Codes configured in the database.</p>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Rule</th>
+                  <th>Validity</th>
+                  <th>Audience</th>
+                  <th>Usage</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((d) => (
+                  <tr key={d.id}>
+                    <td>
+                      <strong>{d.code}</strong>
+                    </td>
+                    <td>
+                      {d.type === "PERCENTAGE" ? `${d.value}% off` : `${money(d.value)} off`}
+                      <small>Min {money(d.minimumOrderValue)}</small>
+                    </td>
+                    <td>
+                      <Badge t={d.active ? "success" : "neutral"}>
+                        {d.active ? "Active" : "Inactive"}
+                      </Badge>
+                      <small>{d.expiresAt ? `Until ${date(d.expiresAt)}` : "No expiry"}</small>
+                    </td>
+                    <td>{d.firstTimeOnly ? "First order" : "All customers"}</td>
+                    <td>
+                      {d.usageCount}
+                      {d.usageLimit ? ` / ${d.usageLimit}` : " / ∞"}
+                    </td>
+                    <td>
+                      <button
+                        className="row-btn"
+                        onClick={() => {
+                          setEditing(d.id);
+                          setForm({
+                            ...d,
+                            startsAt: d.startsAt?.slice(0, 16) || "",
+                            expiresAt: d.expiresAt?.slice(0, 16) || "",
+                            maxDiscount: d.maxDiscount ?? "",
+                            usageLimit: d.usageLimit ?? "",
+                            firstTimeOnly: Boolean(d.firstTimeOnly),
+                          });
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button className="danger-btn" onClick={() => del(d.id)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!items.length && (
+                  <tr>
+                    <td colSpan="6">
+                      <div className="empty-state">No discounts yet.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
-function ReviewsPage(){
- const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[msg,setMsg]=useState('');
- async function load(){setLoading(true);try{setRows(await api('/api/reviews/admin'))}catch(e){setMsg(e.message)}finally{setLoading(false)}}
- useEffect(()=>{load()},[]);
- async function status(id,value){try{await api(`/api/reviews/admin/${id}/status?status=${encodeURIComponent(value)}`,{method:'PUT'});setMsg(`Review ${value.toLowerCase()}.`);await load()}catch(e){setMsg(e.message)}}
- async function remove(id){if(!confirm('Delete this review permanently?'))return;try{await api(`/api/reviews/admin/${id}`,{method:'DELETE'});setMsg('Review deleted.');await load()}catch(e){setMsg(e.message)}}
- const pending=rows.filter(r=>r.status==='PENDING').length, approved=rows.filter(r=>r.status==='APPROVED').length;
- return <><div className="page-head"><div><div className="eyebrow">CUSTOMER VOICES</div><h1>Reviews</h1><p className="muted">Moderate product reviews before they appear publicly.</p></div><button className="secondary-btn" onClick={load}>↻ Refresh</button></div><Notice message={msg}/><section className="stat-grid"><Stat label="Total reviews" value={rows.length} icon="★"/><Stat label="Pending" value={pending} icon="!" tone="warm"/><Stat label="Published" value={approved} icon="✓" tone="sage"/><Stat label="Rejected" value={rows.filter(r=>r.status==='REJECTED').length} icon="×"/></section><div className="panel"><div className="table-wrap"><table><thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Review</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>{loading?<tr><td colSpan="7"><div className="empty-state">Loading reviews…</div></td></tr>:rows.map(r=><tr key={r.id}><td><strong>{r.productName||`Product #${r.productId}`}</strong></td><td>{r.customerName||'Customer'}{r.verifiedPurchase&&<small>Verified purchase</small>}</td><td><span className="admin-review-stars">{'★'.repeat(Number(r.rating||0))}</span></td><td className="review-admin-copy">{r.review}</td><td><Badge t={r.status==='APPROVED'?'success':r.status==='REJECTED'?'danger':'warning'}>{r.status}</Badge></td><td>{date(r.createdAt)}</td><td><div className="row-actions">{r.status!=='APPROVED'&&<button className="row-btn" onClick={()=>status(r.id,'APPROVED')}>Approve</button>}{r.status!=='REJECTED'&&<button className="row-btn" onClick={()=>status(r.id,'REJECTED')}>Reject</button>}<button className="row-btn" onClick={()=>remove(r.id)}>Delete</button></div></td></tr>)}{!loading&&!rows.length&&<tr><td colSpan="7"><div className="empty-state">No reviews yet.</div></td></tr>}</tbody></table></div></div></>
+function ShippingPage() {
+  const [zones, setZones] = useState([]),
+    [pins, setPins] = useState([]),
+    [msg, setMsg] = useState(""),
+    [zoneEditing, setZoneEditing] = useState(false),
+    [pinEditing, setPinEditing] = useState(false),
+    [zoneId, setZoneId] = useState(null),
+    [pinId, setPinId] = useState(null);
+  const emptyZone = {
+    code: "",
+    name: "",
+    shadowfaxBaseRate: 0,
+    customerCharge: 0,
+    freeDeliveryThreshold: 0,
+    codCharge: 0,
+    active: true,
+  };
+  const emptyPin = {
+    pincode: "",
+    zoneId: "",
+    customerChargeOverride: "",
+    freeDeliveryThresholdOverride: "",
+    codChargeOverride: "",
+    active: true,
+  };
+  const [zf, setZf] = useState(emptyZone),
+    [pf, setPf] = useState(emptyPin);
+  async function load() {
+    try {
+      const [z, p] = await Promise.all([
+        api("/api/admin/shipping/zones"),
+        api("/api/admin/shipping/pincodes"),
+      ]);
+      setZones(z);
+      setPins(p);
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function saveZone(e) {
+    e.preventDefault();
+    try {
+      await api(zoneId ? `/api/admin/shipping/zones/${zoneId}` : "/api/admin/shipping/zones", {
+        method: zoneId ? "PUT" : "POST",
+        body: JSON.stringify({
+          ...zf,
+          shadowfaxBaseRate: Number(zf.shadowfaxBaseRate),
+          customerCharge: Number(zf.customerCharge),
+          freeDeliveryThreshold: Number(zf.freeDeliveryThreshold),
+          codCharge: Number(zf.codCharge),
+        }),
+      });
+      setZoneEditing(false);
+      setZoneId(null);
+      setZf(emptyZone);
+      setMsg("Zone saved.");
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function savePin(e) {
+    e.preventDefault();
+    try {
+      await api(pinId ? `/api/admin/shipping/pincodes/${pinId}` : "/api/admin/shipping/pincodes", {
+        method: pinId ? "PUT" : "POST",
+        body: JSON.stringify({
+          ...pf,
+          zoneId: Number(pf.zoneId),
+          customerChargeOverride:
+            pf.customerChargeOverride === "" ? null : Number(pf.customerChargeOverride),
+          freeDeliveryThresholdOverride:
+            pf.freeDeliveryThresholdOverride === ""
+              ? null
+              : Number(pf.freeDeliveryThresholdOverride),
+          codChargeOverride: pf.codChargeOverride === "" ? null : Number(pf.codChargeOverride),
+        }),
+      });
+      setPinEditing(false);
+      setPinId(null);
+      setPf(emptyPin);
+      setMsg("Pincode rule saved.");
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function delPin(id) {
+    if (!confirm("Delete this pincode override?")) return;
+    try {
+      await api(`/api/admin/shipping/pincodes/${id}`, { method: "DELETE" });
+      setMsg("Pincode override deleted.");
+      load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">FULFILMENT</div>
+          <h1>Shipping</h1>
+          <p className="muted">Distance-based Zone A–E pricing and pincode overrides.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      {zoneEditing && (
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>{zoneId ? "Edit zone" : "Add zone"}</h2>
+              <p>Customer pricing and COD rules.</p>
+            </div>
+          </div>
+          <form className="product-form" onSubmit={saveZone}>
+            <div className="form-grid">
+              <label>
+                Code
+                <input
+                  value={zf.code}
+                  onChange={(e) => setZf({ ...zf, code: e.target.value.toUpperCase() })}
+                  required
+                />
+              </label>
+              <label>
+                Name
+                <input
+                  value={zf.name}
+                  onChange={(e) => setZf({ ...zf, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Shadowfax base rate
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={zf.shadowfaxBaseRate}
+                  onChange={(e) => setZf({ ...zf, shadowfaxBaseRate: e.target.value })}
+                />
+              </label>
+              <label>
+                Customer charge
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={zf.customerCharge}
+                  onChange={(e) => setZf({ ...zf, customerCharge: e.target.value })}
+                />
+              </label>
+              <label>
+                Free delivery threshold
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={zf.freeDeliveryThreshold}
+                  onChange={(e) => setZf({ ...zf, freeDeliveryThreshold: e.target.value })}
+                />
+              </label>
+              <label>
+                COD charge
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={zf.codCharge}
+                  onChange={(e) => setZf({ ...zf, codCharge: e.target.value })}
+                />
+              </label>
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={zf.active}
+                  onChange={(e) => setZf({ ...zf, active: e.target.checked })}
+                />{" "}
+                Active
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="secondary-btn" onClick={() => setZoneEditing(false)}>
+                Cancel
+              </button>
+              <button className="primary-btn">Save zone</button>
+            </div>
+          </form>
+        </div>
+      )}
+      <div className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Shipping zones</h2>
+            <p>Customer charge is independent from Shadowfax logistics cost.</p>
+          </div>
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setZoneId(null);
+              setZf(emptyZone);
+              setZoneEditing(true);
+            }}
+          >
+            + Add zone
+          </button>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Zone</th>
+                <th>Shadowfax base</th>
+                <th>Customer charge</th>
+                <th>Free delivery</th>
+                <th>COD</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {zones.map((z) => (
+                <tr key={z.id}>
+                  <td>
+                    <strong>{z.code}</strong>
+                    <small>{z.name}</small>
+                  </td>
+                  <td>{money(z.shadowfaxBaseRate)}</td>
+                  <td>{money(z.customerCharge)}</td>
+                  <td>{money(z.freeDeliveryThreshold)}</td>
+                  <td>{money(z.codCharge)}</td>
+                  <td>
+                    <button
+                      className="row-btn"
+                      onClick={() => {
+                        setZoneId(z.id);
+                        setZf(z);
+                        setZoneEditing(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {pinEditing && (
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>{pinId ? "Edit pincode override" : "Add pincode override"}</h2>
+              <p>Explicit mapping takes precedence over automatic zone classification.</p>
+            </div>
+          </div>
+          <form className="product-form" onSubmit={savePin}>
+            <div className="form-grid">
+              <label>
+                Pincode
+                <input
+                  value={pf.pincode}
+                  onChange={(e) => setPf({ ...pf, pincode: e.target.value })}
+                  maxLength="6"
+                  required
+                />
+              </label>
+              <label>
+                Zone
+                <select
+                  value={pf.zoneId}
+                  onChange={(e) => setPf({ ...pf, zoneId: e.target.value })}
+                  required
+                >
+                  <option value="">Select zone</option>
+                  {zones.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.code} · {z.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Customer charge override
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={pf.customerChargeOverride}
+                  onChange={(e) => setPf({ ...pf, customerChargeOverride: e.target.value })}
+                />
+              </label>
+              <label>
+                Free threshold override
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={pf.freeDeliveryThresholdOverride}
+                  onChange={(e) => setPf({ ...pf, freeDeliveryThresholdOverride: e.target.value })}
+                />
+              </label>
+              <label>
+                COD charge override
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={pf.codChargeOverride}
+                  onChange={(e) => setPf({ ...pf, codChargeOverride: e.target.value })}
+                />
+              </label>
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={pf.active}
+                  onChange={(e) => setPf({ ...pf, active: e.target.checked })}
+                />{" "}
+                Active
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="secondary-btn" onClick={() => setPinEditing(false)}>
+                Cancel
+              </button>
+              <button className="primary-btn">Save override</button>
+            </div>
+          </form>
+        </div>
+      )}
+      <div className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Pincode overrides</h2>
+            <p>Manage exceptional locations without code changes.</p>
+          </div>
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setPinId(null);
+              setPf(emptyPin);
+              setPinEditing(true);
+            }}
+          >
+            + Add pincode
+          </button>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pincode</th>
+                <th>Zone</th>
+                <th>Charge</th>
+                <th>Free threshold</th>
+                <th>COD</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pins.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <strong>{p.pincode}</strong>
+                  </td>
+                  <td>{p.zoneCode || p.zoneName || p.zoneId}</td>
+                  <td>
+                    {p.customerChargeOverride == null
+                      ? "Zone default"
+                      : money(p.customerChargeOverride)}
+                  </td>
+                  <td>
+                    {p.freeDeliveryThresholdOverride == null
+                      ? "Zone default"
+                      : money(p.freeDeliveryThresholdOverride)}
+                  </td>
+                  <td>
+                    {p.codChargeOverride == null ? "Zone default" : money(p.codChargeOverride)}
+                  </td>
+                  <td>
+                    <button
+                      className="row-btn"
+                      onClick={() => {
+                        setPinId(p.id);
+                        setPf({ ...p, zoneId: p.zoneId });
+                        setPinEditing(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button className="danger-btn" onClick={() => delPin(p.id)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
 }
 
-function SettingsPage(){
- const [form,setForm]=useState(null),[msg,setMsg]=useState('');async function load(){try{setForm(await api('/api/store-settings'))}catch(e){setMsg(e.message)}}useEffect(()=>{load()},[]);if(!form)return <div className="empty-state">Loading settings…</div>;async function save(e){e.preventDefault();try{await api('/api/store-settings',{method:'PUT',body:JSON.stringify({...form,gstRate:Number(form.gstRate),shippingCharge:Number(form.shippingCharge),freeShippingThreshold:Number(form.freeShippingThreshold),minimumOrderValue:Number(form.minimumOrderValue),whatsappNumber:String(form.whatsappNumber || '')})});setMsg('Store settings saved.')}catch(e){setMsg(e.message)}}const set=(k,v)=>setForm(f=>({...f,[k]:v}));return <><div className="page-head"><div><div className="eyebrow">STORE</div><h1>Settings</h1><p className="muted">Operational pricing settings used by checkout.</p></div></div><Notice message={msg}/><div className="panel"><div className="panel-head"><div><h2>Store checkout settings</h2><p>Changes apply to the backend calculation engine.</p></div></div><form className="product-form narrow-form" onSubmit={save}><div className="form-grid"><label>GST rate (%)<input type="number" min="0" step="0.01" value={form.gstRate} onChange={e=>set('gstRate',e.target.value)}/></label><label>Default shipping charge<input type="number" min="0" step="0.01" value={form.shippingCharge} onChange={e=>set('shippingCharge',e.target.value)}/></label><label>Free shipping threshold<input type="number" min="0" step="0.01" value={form.freeShippingThreshold} onChange={e=>set('freeShippingThreshold',e.target.value)}/></label><label>Minimum order value<input type="number" min="0" step="0.01" value={form.minimumOrderValue} onChange={e=>set('minimumOrderValue',e.target.value)}/></label><label>WhatsApp contact number<input type="tel" inputMode="numeric" placeholder="e.g. 919876543210" value={form.whatsappNumber || ''} onChange={e=>set('whatsappNumber',e.target.value)} /><small className="field-help">Use country code, digits only. Leave blank to hide the WhatsApp button.</small></label></div><div className="modal-actions"><button className="primary-btn">Save settings</button></div></form></div></>}
-
-function App(){
- const [admin,setAdmin]=useState(null),[checking,setChecking]=useState(true),[active,setActive]=useState('dashboard'),[orders,setOrders]=useState([]),[products,setProducts]=useState([]),[customers,setCustomers]=useState([]),[selectedOrder,setSelectedOrder]=useState(null),[loading,setLoading]=useState(false);
- async function loadAll(){setLoading(true);try{const [o,p,c]=await Promise.all([api('/api/admin/orders'),api('/api/admin/products'),api('/api/admin/customers')]);setOrders(o);setProducts(Array.isArray(p)?p.map(normaliseProduct):p);setCustomers(c)}catch(e){if(e.status===401)setAdmin(null)}finally{setLoading(false)}}
- useEffect(()=>{api('/api/admin/me').then(setAdmin).catch(()=>setAdmin(null)).finally(()=>setChecking(false))},[]);useEffect(()=>{if(admin)loadAll()},[admin]);useEffect(()=>{const h=e=>setActive(e.detail);window.addEventListener('navigate-admin',h);return()=>window.removeEventListener('navigate-admin',h)},[]);useEffect(()=>{if(active!=='orders')setSelectedOrder(null)},[active]);
- if(checking)return <div className="loading-screen">Loading Cerclay Admin…</div>;if(!admin)return <Login onLogin={setAdmin}/>;
- let page;if(active==='dashboard')page=<Dashboard orders={orders} products={products} customers={customers} onRefresh={loadAll}/>;else if(active==='orders'&&selectedOrder)page=<OrderDetail order={selectedOrder} onBack={()=>setSelectedOrder(null)} onRefresh={loadAll}/>;else if(active==='orders')page=<OrdersPage orders={orders} onRefresh={loadAll} onSelect={setSelectedOrder}/>;else if(active==='products')page=<ProductsPage/>;else if(active==='inventory')page=<InventoryPage/>;else if(active==='customers')page=<CustomersPage/>;else if(active==='reviews')page=<ReviewsPage/>;else if(active==='returns')page=<ReturnsPage/>;else if(active==='discounts')page=<DiscountsPage/>;else if(active==='shipping')page=<ShippingPage/>;else if(active==='payments')page=<PaymentsPage/>;else if(active==='communications')page=<CommunicationsPage/>;else page=<SettingsPage/>;
- return <Shell admin={admin} active={active} setActive={setActive} onLogout={()=>setAdmin(null)}>{loading&&active==='dashboard'?<div className="loading-inline">Refreshing store data…</div>:null}{page}</Shell>
+function PaymentsPage() {
+  const [payments, setPayments] = useState([]),
+    [q, setQ] = useState(""),
+    [msg, setMsg] = useState("");
+  async function load() {
+    try {
+      setPayments(await api("/api/admin/payments"));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const list = payments.filter((p) => JSON.stringify(p).toLowerCase().includes(q.toLowerCase()));
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">FINANCE</div>
+          <h1>Payments</h1>
+          <p className="muted">Cashfree and COD payment records for reconciliation.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      <div className="toolbar">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search order, Cashfree ID or status…"
+        />
+        <span className="toolbar-count">{list.length} payments</span>
+      </div>
+      <div className="panel">
+        <div className="table-wrap">
+          <table className="wide-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Cashfree payment</th>
+                <th>Status</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <strong>{p.orderNumber || `#${p.orderId}`}</strong>
+                    <small>{p.cashfreeOrderId || p.razorpayOrderId || "—"}</small>
+                  </td>
+                  <td>{money(p.amount)}</td>
+                  <td>{p.paymentMethod || "—"}</td>
+                  <td>{p.cashfreePaymentId || p.razorpayPaymentId || "Not captured"}</td>
+                  <td>
+                    <Badge t={tone(p.paymentStatus)}>{p.paymentStatus}</Badge>
+                  </td>
+                  <td>{date(p.updatedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
 }
-createRoot(document.getElementById('root')).render(<App/>);
+function CommunicationsPage() {
+  const [templates, setTemplates] = useState([]),
+    [history, setHistory] = useState([]),
+    [selected, setSelected] = useState(null),
+    [msg, setMsg] = useState(""),
+    [tab, setTab] = useState("templates");
+  async function load() {
+    try {
+      const [t, h] = await Promise.all([
+        api("/api/admin/notifications/templates"),
+        api("/api/admin/notifications/history"),
+      ]);
+      setTemplates(t);
+      setHistory(h);
+      if (!selected && t.length) setSelected(t[0].eventType);
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const current = templates.find((t) => t.eventType === selected);
+  async function save(e) {
+    e.preventDefault();
+    if (!current) return;
+    try {
+      const saved = await api(`/api/admin/notifications/templates/${current.eventType}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled: current.enabled,
+          subjectTemplate: current.subjectTemplate,
+          bodyTemplate: current.bodyTemplate,
+        }),
+      });
+      setTemplates((x) => x.map((t) => (t.eventType === saved.eventType ? saved : t)));
+      setMsg("Notification template saved.");
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CUSTOMER COMMUNICATION</div>
+          <h1>Communications</h1>
+          <p className="muted">Manage customer email templates and delivery history.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      <div className="tab-row">
+        <button
+          className={tab === "templates" ? "tab-btn active" : "tab-btn"}
+          onClick={() => setTab("templates")}
+        >
+          Email templates
+        </button>
+        <button
+          className={tab === "history" ? "tab-btn active" : "tab-btn"}
+          onClick={() => setTab("history")}
+        >
+          Delivery history
+        </button>
+      </div>
+      {tab === "templates" ? (
+        <div className="detail-grid">
+          <div className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>Events</h2>
+                <p>Disable any customer email without changing code.</p>
+              </div>
+            </div>
+            <div className="communication-events">
+              {templates.map((t) => (
+                <button
+                  key={t.eventType}
+                  className={
+                    selected === t.eventType ? "communication-event active" : "communication-event"
+                  }
+                  onClick={() => setSelected(t.eventType)}
+                >
+                  <strong>{t.eventType.replaceAll("_", " ")}</strong>
+                  <Badge t={t.enabled ? "success" : "neutral"}>
+                    {t.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="panel">
+            {current ? (
+              <form className="product-form" onSubmit={save}>
+                <div className="panel-head">
+                  <div>
+                    <h2>{current.eventType.replaceAll("_", " ")}</h2>
+                    <p>
+                      Available placeholders: {"{{customerName}}"}, {"{{orderNumber}}"},{" "}
+                      {"{{total}}"}, {"{{paymentMethod}}"}, {"{{status}}"}, {"{{trackingNumber}}"},{" "}
+                      {"{{trackingUrl}}"}.
+                    </p>
+                  </div>
+                </div>
+                <label className="checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={current.enabled}
+                    onChange={(e) =>
+                      setTemplates((ts) =>
+                        ts.map((t) =>
+                          t.eventType === current.eventType
+                            ? { ...t, enabled: e.target.checked }
+                            : t
+                        )
+                      )
+                    }
+                  />{" "}
+                  Enabled
+                </label>
+                <label>
+                  Subject
+                  <input
+                    value={current.subjectTemplate}
+                    onChange={(e) =>
+                      setTemplates((ts) =>
+                        ts.map((t) =>
+                          t.eventType === current.eventType
+                            ? { ...t, subjectTemplate: e.target.value }
+                            : t
+                        )
+                      )
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Body
+                  <textarea
+                    rows="12"
+                    value={current.bodyTemplate}
+                    onChange={(e) =>
+                      setTemplates((ts) =>
+                        ts.map((t) =>
+                          t.eventType === current.eventType
+                            ? { ...t, bodyTemplate: e.target.value }
+                            : t
+                        )
+                      )
+                    }
+                    required
+                  />
+                </label>
+                <div className="modal-actions">
+                  <button className="primary-btn">Save template</button>
+                </div>
+              </form>
+            ) : (
+              <div className="empty-state">No notification templates available.</div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Delivery history</h2>
+              <p>Queued, sent and failed email notifications.</p>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table className="wide-table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Recipient</th>
+                  <th>Order</th>
+                  <th>Status</th>
+                  <th>Attempts</th>
+                  <th>Created</th>
+                  <th>Sent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((n) => (
+                  <tr key={n.id}>
+                    <td>{String(n.eventType).replaceAll("_", " ")}</td>
+                    <td>{n.recipientEmail}</td>
+                    <td>{n.orderId ? `#${n.orderId}` : "—"}</td>
+                    <td>
+                      <Badge t={tone(n.status)}>{n.status}</Badge>
+                    </td>
+                    <td>{n.attemptCount}</td>
+                    <td>{date(n.createdAt)}</td>
+                    <td>{date(n.sentAt)}</td>
+                  </tr>
+                ))}
+                {!history.length && (
+                  <tr>
+                    <td colSpan="7">
+                      <div className="empty-state">No notification history yet.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+function ReturnsPage() {
+  const [rows, setRows] = useState([]),
+    [loading, setLoading] = useState(true),
+    [msg, setMsg] = useState("");
+  async function load() {
+    setLoading(true);
+    try {
+      setRows(await api("/api/admin/returns"));
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function action(id, path, body = {}, success = "Updated.") {
+    try {
+      setMsg("");
+      await api(`/api/admin/returns/${id}/${path}`, { method: "POST", body: JSON.stringify(body) });
+      setMsg(success);
+      await load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function refund(r) {
+    const max = Number(r.refundableAmount || 0);
+    const value = prompt(`Refund amount (max ₹${max.toFixed(2)}):`, String(max.toFixed(2)));
+    if (value === null) return;
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > max) {
+      setMsg("Enter a valid refund amount within the remaining refundable amount.");
+      return;
+    }
+    await action(r.id, "refund", { amount, reason: "Return refund" }, "Refund initiated.");
+  }
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">RETURNS & REFUNDS</div>
+          <h1>Returns</h1>
+          <p className="muted">Review returns, receive items and manage real refunds.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} error={!!msg && !/Updated|initiated|processed/.test(msg)} />
+      {loading ? (
+        <div className="empty-state">Loading returns…</div>
+      ) : (
+        <div className="panel">
+          <div className="table-wrap">
+            <table className="wide-table">
+              <thead>
+                <tr>
+                  <th>Return</th>
+                  <th>Order</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Refundable</th>
+                  <th>Refunded</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>#{r.id}</strong>
+                      <small>{date(r.requestedAt)}</small>
+                    </td>
+                    <td>
+                      <strong>{r.orderNumber || `#${r.orderId}`}</strong>
+                    </td>
+                    <td>{r.reason}</td>
+                    <td>
+                      <Badge t={tone(r.status)}>{r.status}</Badge>
+                    </td>
+                    <td>{money(r.refundableAmount)}</td>
+                    <td>{money(r.refundedAmount)}</td>
+                    <td>
+                      <div className="action-row">
+                        {r.status === "REQUESTED" && (
+                          <>
+                            <button
+                              className="row-btn"
+                              onClick={() => action(r.id, "approve", {}, "Return approved.")}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="row-btn danger-text"
+                              onClick={() =>
+                                action(
+                                  r.id,
+                                  "reject",
+                                  { note: "Return rejected by admin" },
+                                  "Return rejected."
+                                )
+                              }
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {r.status === "APPROVED" && (
+                          <button
+                            className="row-btn"
+                            onClick={() => action(r.id, "received", {}, "Return marked received.")}
+                          >
+                            Mark received
+                          </button>
+                        )}
+                        {(r.status === "RECEIVED" || r.status === "REFUND_PENDING") &&
+                          Number(r.refundableAmount || 0) > 0 && (
+                            <button className="row-btn" onClick={() => refund(r)}>
+                              Refund
+                            </button>
+                          )}
+                        {r.status === "REFUNDED" && (
+                          <button
+                            className="row-btn"
+                            onClick={() => action(r.id, "close", {}, "Return closed.")}
+                          >
+                            Close
+                          </button>
+                        )}
+                        {(r.refunds || [])
+                          .filter((x) => x.status === "MANUAL_PENDING")
+                          .map((x) => (
+                            <button
+                              key={x.id}
+                              className="row-btn"
+                              onClick={async () => {
+                                try {
+                                  await api(`/api/admin/returns/refunds/${x.id}/manual-processed`, {
+                                    method: "POST",
+                                  });
+                                  setMsg("Manual refund marked processed.");
+                                  await load();
+                                } catch (e) {
+                                  setMsg(e.message);
+                                }
+                              }}
+                            >
+                              Mark COD refund paid
+                            </button>
+                          ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!rows.length && (
+                  <tr>
+                    <td colSpan="7">
+                      <div className="empty-state">No return requests yet.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ReviewsPage() {
+  const [rows, setRows] = useState([]),
+    [loading, setLoading] = useState(true),
+    [msg, setMsg] = useState("");
+  async function load() {
+    setLoading(true);
+    try {
+      setRows(await api("/api/reviews/admin"));
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function status(id, value) {
+    try {
+      await api(`/api/reviews/admin/${id}/status?status=${encodeURIComponent(value)}`, {
+        method: "PUT",
+      });
+      setMsg(`Review ${value.toLowerCase()}.`);
+      await load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  async function remove(id) {
+    if (!confirm("Delete this review permanently?")) return;
+    try {
+      await api(`/api/reviews/admin/${id}`, { method: "DELETE" });
+      setMsg("Review deleted.");
+      await load();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  const pending = rows.filter((r) => r.status === "PENDING").length,
+    approved = rows.filter((r) => r.status === "APPROVED").length;
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CUSTOMER VOICES</div>
+          <h1>Reviews</h1>
+          <p className="muted">Moderate product reviews before they appear publicly.</p>
+        </div>
+        <button className="secondary-btn" onClick={load}>
+          ↻ Refresh
+        </button>
+      </div>
+      <Notice message={msg} />
+      <section className="stat-grid">
+        <Stat label="Total reviews" value={rows.length} icon="★" />
+        <Stat label="Pending" value={pending} icon="!" tone="warm" />
+        <Stat label="Published" value={approved} icon="✓" tone="sage" />
+        <Stat
+          label="Rejected"
+          value={rows.filter((r) => r.status === "REJECTED").length}
+          icon="×"
+        />
+      </section>
+      <div className="panel">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Customer</th>
+                <th>Rating</th>
+                <th>Review</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">Loading reviews…</div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{r.productName || `Product #${r.productId}`}</strong>
+                    </td>
+                    <td>
+                      {r.customerName || "Customer"}
+                      {r.verifiedPurchase && <small>Verified purchase</small>}
+                    </td>
+                    <td>
+                      <span className="admin-review-stars">
+                        {"★".repeat(Number(r.rating || 0))}
+                      </span>
+                    </td>
+                    <td className="review-admin-copy">{r.review}</td>
+                    <td>
+                      <Badge
+                        t={
+                          r.status === "APPROVED"
+                            ? "success"
+                            : r.status === "REJECTED"
+                              ? "danger"
+                              : "warning"
+                        }
+                      >
+                        {r.status}
+                      </Badge>
+                    </td>
+                    <td>{date(r.createdAt)}</td>
+                    <td>
+                      <div className="row-actions">
+                        {r.status !== "APPROVED" && (
+                          <button className="row-btn" onClick={() => status(r.id, "APPROVED")}>
+                            Approve
+                          </button>
+                        )}
+                        {r.status !== "REJECTED" && (
+                          <button className="row-btn" onClick={() => status(r.id, "REJECTED")}>
+                            Reject
+                          </button>
+                        )}
+                        <button className="row-btn" onClick={() => remove(r.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+              {!loading && !rows.length && (
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">No reviews yet.</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SettingsPage() {
+  const [form, setForm] = useState(null),
+    [msg, setMsg] = useState("");
+  async function load() {
+    try {
+      setForm(await api("/api/store-settings"));
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  if (!form) return <div className="empty-state">Loading settings…</div>;
+  async function save(e) {
+    e.preventDefault();
+    try {
+      await api("/api/store-settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          ...form,
+          gstRate: Number(form.gstRate),
+          shippingCharge: Number(form.shippingCharge),
+          freeShippingThreshold: Number(form.freeShippingThreshold),
+          minimumOrderValue: Number(form.minimumOrderValue),
+          whatsappNumber: String(form.whatsappNumber || ""),
+        }),
+      });
+      setMsg("Store settings saved.");
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">STORE</div>
+          <h1>Settings</h1>
+          <p className="muted">Operational pricing settings used by checkout.</p>
+        </div>
+      </div>
+      <Notice message={msg} />
+      <div className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Store checkout settings</h2>
+            <p>Changes apply to the backend calculation engine.</p>
+          </div>
+        </div>
+        <form className="product-form narrow-form" onSubmit={save}>
+          <div className="form-grid">
+            <label>
+              GST rate (%)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.gstRate}
+                onChange={(e) => set("gstRate", e.target.value)}
+              />
+            </label>
+            <label>
+              Default shipping charge
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.shippingCharge}
+                onChange={(e) => set("shippingCharge", e.target.value)}
+              />
+            </label>
+            <label>
+              Free shipping threshold
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.freeShippingThreshold}
+                onChange={(e) => set("freeShippingThreshold", e.target.value)}
+              />
+            </label>
+            <label>
+              Minimum order value
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.minimumOrderValue}
+                onChange={(e) => set("minimumOrderValue", e.target.value)}
+              />
+            </label>
+            <label>
+              WhatsApp contact number
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="e.g. 919876543210"
+                value={form.whatsappNumber || ""}
+                onChange={(e) => set("whatsappNumber", e.target.value)}
+              />
+              <small className="field-help">
+                Use country code, digits only. Leave blank to hide the WhatsApp button.
+              </small>
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button className="primary-btn">Save settings</button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+}
+
+function App() {
+  const [admin, setAdmin] = useState(null),
+    [checking, setChecking] = useState(true),
+    [active, setActive] = useState("dashboard"),
+    [orders, setOrders] = useState([]),
+    [products, setProducts] = useState([]),
+    [customers, setCustomers] = useState([]),
+    [selectedOrder, setSelectedOrder] = useState(null),
+    [loading, setLoading] = useState(false);
+  async function loadAll() {
+    setLoading(true);
+    try {
+      const [o, p, c] = await Promise.all([
+        api("/api/admin/orders"),
+        api("/api/admin/products"),
+        api("/api/admin/customers"),
+      ]);
+      setOrders(o);
+      setProducts(Array.isArray(p) ? p.map(normaliseProduct) : p);
+      setCustomers(c);
+    } catch (e) {
+      if (e.status === 401) setAdmin(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    api("/api/admin/me")
+      .then(setAdmin)
+      .catch(() => setAdmin(null))
+      .finally(() => setChecking(false));
+  }, []);
+  useEffect(() => {
+    if (admin) loadAll();
+  }, [admin]);
+  useEffect(() => {
+    const h = (e) => setActive(e.detail);
+    window.addEventListener("navigate-admin", h);
+    return () => window.removeEventListener("navigate-admin", h);
+  }, []);
+  useEffect(() => {
+    if (active !== "orders") setSelectedOrder(null);
+  }, [active]);
+  if (checking) return <div className="loading-screen">Loading Cerclay Admin…</div>;
+  if (!admin) return <Login onLogin={setAdmin} />;
+  let page;
+  if (active === "dashboard")
+    page = (
+      <Dashboard orders={orders} products={products} customers={customers} onRefresh={loadAll} />
+    );
+  else if (active === "orders" && selectedOrder)
+    page = (
+      <OrderDetail
+        order={selectedOrder}
+        onBack={() => setSelectedOrder(null)}
+        onRefresh={loadAll}
+      />
+    );
+  else if (active === "orders")
+    page = <OrdersPage orders={orders} onRefresh={loadAll} onSelect={setSelectedOrder} />;
+  else if (active === "products") page = <ProductsPage />;
+  else if (active === "inventory") page = <InventoryPage />;
+  else if (active === "customers") page = <CustomersPage />;
+  else if (active === "reviews") page = <ReviewsPage />;
+  else if (active === "returns") page = <ReturnsPage />;
+  else if (active === "discounts") page = <DiscountsPage />;
+  else if (active === "shipping") page = <ShippingPage />;
+  else if (active === "payments") page = <PaymentsPage />;
+  else if (active === "communications") page = <CommunicationsPage />;
+  else page = <SettingsPage />;
+  return (
+    <Shell admin={admin} active={active} setActive={setActive} onLogout={() => setAdmin(null)}>
+      {loading && active === "dashboard" ? (
+        <div className="loading-inline">Refreshing store data…</div>
+      ) : null}
+      {page}
+    </Shell>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);

@@ -10,16 +10,12 @@ public class OrderCreateRequest {
     private Long addressId;
 
     @NotBlank(message = "Payment method is required")
-    @Pattern(
-            regexp = "COD|CASHFREE|RAZORPAY",
-            message = "Payment method must be COD, CASHFREE or RAZORPAY"
-    )
+    @Pattern(regexp = "COD|CASHFREE|RAZORPAY", message = "Payment method must be COD, CASHFREE or RAZORPAY")
     private String paymentMethod;
 
     private String couponCode;
 
-    public OrderCreateRequest() {
-    }
+    public OrderCreateRequest() {}
 
     public Long getAddressId() {
         return addressId;
@@ -29,9 +25,13 @@ public class OrderCreateRequest {
         this.addressId = addressId;
     }
 
-    public String getCouponCode() { return couponCode; }
+    public String getCouponCode() {
+        return couponCode;
+    }
 
-    public void setCouponCode(String couponCode) { this.couponCode = couponCode; }
+    public void setCouponCode(String couponCode) {
+        this.couponCode = couponCode;
+    }
 
     public String getPaymentMethod() {
         return paymentMethod;

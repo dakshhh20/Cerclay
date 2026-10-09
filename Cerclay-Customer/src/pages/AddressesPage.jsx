@@ -48,7 +48,11 @@ export default function AddressesPage() {
   );
 
   if (status === "loading") {
-    return <section className="page-container state-page"><p>Loading your account…</p></section>;
+    return (
+      <section className="page-container state-page">
+        <p>Loading your account…</p>
+      </section>
+    );
   }
 
   function startEdit(address) {
@@ -118,7 +122,9 @@ export default function AddressesPage() {
           <h1>{editingAddress ? "Edit address" : "Your addresses"}</h1>
           <p>Save delivery addresses once and use them during checkout.</p>
         </div>
-        <Link className="secondary-button" to="/account">Back to account</Link>
+        <Link className="secondary-button" to="/account">
+          Back to account
+        </Link>
       </div>
 
       {error && <div className="form-error">{error}</div>}
@@ -130,18 +136,90 @@ export default function AddressesPage() {
               <p className="eyebrow">{editingId ? "EDIT" : "ADD NEW"}</p>
               <h2>{editingId ? "Update address" : "New delivery address"}</h2>
             </div>
-            {editingId && <button type="button" className="text-button" onClick={resetForm}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="text-button" onClick={resetForm}>
+                Cancel
+              </button>
+            )}
           </div>
 
           <div className="address-form-grid">
-            <label><span>Full name</span><input name="name" value={form.name} onChange={handleChange} required maxLength={100} /></label>
-            <label><span>Phone</span><input name="phone" value={form.phone} onChange={handleChange} required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} /></label>
-            <label className="address-form-wide"><span>House / flat / building</span><input name="house" value={form.house} onChange={handleChange} required maxLength={200} /></label>
-            <label className="address-form-wide"><span>Street / locality</span><input name="street" value={form.street} onChange={handleChange} required maxLength={200} /></label>
-            <label><span>City</span><input name="city" value={form.city} onChange={handleChange} required maxLength={100} /></label>
-            <label><span>State</span><input name="state" value={form.state} onChange={handleChange} required maxLength={100} /></label>
-            <label><span>PIN code</span><input name="pincode" value={form.pincode} onChange={handleChange} required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} /></label>
-            <label><span>Address type</span>
+            <label>
+              <span>Full name</span>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                maxLength={100}
+              />
+            </label>
+            <label>
+              <span>Phone</span>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+              />
+            </label>
+            <label className="address-form-wide">
+              <span>House / flat / building</span>
+              <input
+                name="house"
+                value={form.house}
+                onChange={handleChange}
+                required
+                maxLength={200}
+              />
+            </label>
+            <label className="address-form-wide">
+              <span>Street / locality</span>
+              <input
+                name="street"
+                value={form.street}
+                onChange={handleChange}
+                required
+                maxLength={200}
+              />
+            </label>
+            <label>
+              <span>City</span>
+              <input
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                required
+                maxLength={100}
+              />
+            </label>
+            <label>
+              <span>State</span>
+              <input
+                name="state"
+                value={form.state}
+                onChange={handleChange}
+                required
+                maxLength={100}
+              />
+            </label>
+            <label>
+              <span>PIN code</span>
+              <input
+                name="pincode"
+                value={form.pincode}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+              />
+            </label>
+            <label>
+              <span>Address type</span>
               <select name="addressType" value={form.addressType} onChange={handleChange}>
                 <option value="HOME">Home</option>
                 <option value="WORK">Work</option>
@@ -151,7 +229,12 @@ export default function AddressesPage() {
           </div>
 
           <label className="checkbox-row">
-            <input type="checkbox" name="defaultAddress" checked={form.defaultAddress} onChange={handleChange} />
+            <input
+              type="checkbox"
+              name="defaultAddress"
+              checked={form.defaultAddress}
+              onChange={handleChange}
+            />
             <span>Make this my default delivery address</span>
           </label>
 
@@ -186,13 +269,24 @@ export default function AddressesPage() {
                       {address.defaultAddress && <span className="default-badge">Default</span>}
                     </div>
                     <div className="saved-address-actions">
-                      <button className="text-button" onClick={() => startEdit(address)}>Edit</button>
-                      <button className="text-button danger-text" onClick={() => handleDelete(address.id)}>Delete</button>
+                      <button className="text-button" onClick={() => startEdit(address)}>
+                        Edit
+                      </button>
+                      <button
+                        className="text-button danger-text"
+                        onClick={() => handleDelete(address.id)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                   <h3>{address.name}</h3>
-                  <p>{address.house}, {address.street}</p>
-                  <p>{address.city}, {address.state} — {address.pincode}</p>
+                  <p>
+                    {address.house}, {address.street}
+                  </p>
+                  <p>
+                    {address.city}, {address.state} — {address.pincode}
+                  </p>
                   <p>Phone: {address.phone}</p>
                 </article>
               ))}

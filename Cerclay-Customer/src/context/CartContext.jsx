@@ -7,9 +7,10 @@ const GUEST_ID_KEY = "cerclay_guest_id";
 function getGuestId() {
   let guestId = localStorage.getItem(GUEST_ID_KEY);
   if (!guestId) {
-    const randomId = typeof crypto?.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    const randomId =
+      typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
     guestId = randomId;
     localStorage.setItem(GUEST_ID_KEY, guestId);
   }
@@ -44,47 +45,63 @@ export function CartProvider({ children }) {
     refreshCart().catch(() => {});
   }, [refreshCart]);
 
-  const addItem = useCallback(async (productId, quantity = 1, packSize = 1) => {
-    const data = await addCartItem(guestId, productId, quantity, packSize);
-    const nextCart = normaliseCart(data);
-    setCart(nextCart);
-    setError("");
-    return nextCart;
-  }, [guestId]);
+  const addItem = useCallback(
+    async (productId, quantity = 1, packSize = 1) => {
+      const data = await addCartItem(guestId, productId, quantity, packSize);
+      const nextCart = normaliseCart(data);
+      setCart(nextCart);
+      setError("");
+      return nextCart;
+    },
+    [guestId]
+  );
 
-  const updateItem = useCallback(async (productId, quantity, packSize = 1) => {
-    const data = await updateCartItem(guestId, productId, quantity, packSize);
-    const nextCart = normaliseCart(data);
-    setCart(nextCart);
-    return nextCart;
-  }, [guestId]);
+  const updateItem = useCallback(
+    async (productId, quantity, packSize = 1) => {
+      const data = await updateCartItem(guestId, productId, quantity, packSize);
+      const nextCart = normaliseCart(data);
+      setCart(nextCart);
+      return nextCart;
+    },
+    [guestId]
+  );
 
-  const removeItem = useCallback(async (productId, packSize = 1) => {
-    const data = await removeCartItem(guestId, productId, packSize);
-    const nextCart = normaliseCart(data);
-    setCart(nextCart);
-    return nextCart;
-  }, [guestId]);
+  const removeItem = useCallback(
+    async (productId, packSize = 1) => {
+      const data = await removeCartItem(guestId, productId, packSize);
+      const nextCart = normaliseCart(data);
+      setCart(nextCart);
+      return nextCart;
+    },
+    [guestId]
+  );
 
-  const itemCount = cart.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.packSize || 1), 0);
+  const itemCount = cart.items.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.packSize || 1),
+    0
+  );
   const subtotal = cart.items.reduce((sum, item) => {
     const packSize = Number(item.packSize || 1);
-    const price = packSize === 2 ? Number(item.product?.setOf2Price ?? 0) : Number(item.product?.price ?? 0);
+    const price =
+      packSize === 2 ? Number(item.product?.setOf2Price ?? 0) : Number(item.product?.price ?? 0);
     return sum + price * Number(item.quantity || 0);
   }, 0);
 
-  const value = useMemo(() => ({
-    guestId,
-    cart,
-    status,
-    error,
-    itemCount,
-    subtotal,
-    refreshCart,
-    addItem,
-    updateItem,
-    removeItem,
-  }), [cart, status, error, itemCount, subtotal, refreshCart, addItem, updateItem, removeItem]);
+  const value = useMemo(
+    () => ({
+      guestId,
+      cart,
+      status,
+      error,
+      itemCount,
+      subtotal,
+      refreshCart,
+      addItem,
+      updateItem,
+      removeItem,
+    }),
+    [cart, status, error, itemCount, subtotal, refreshCart, addItem, updateItem, removeItem]
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

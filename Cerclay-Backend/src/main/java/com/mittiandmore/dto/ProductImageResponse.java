@@ -7,8 +7,7 @@ public class ProductImageResponse {
     private Boolean primary;
     private Integer displayOrder;
 
-    public ProductImageResponse() {
-    }
+    public ProductImageResponse() {}
 
     public Long getId() {
         return id;

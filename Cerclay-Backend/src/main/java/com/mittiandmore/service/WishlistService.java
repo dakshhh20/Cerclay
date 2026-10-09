@@ -8,11 +8,10 @@ import com.mittiandmore.exception.ApiException;
 import com.mittiandmore.repository.CustomerRepository;
 import com.mittiandmore.repository.ProductRepository;
 import com.mittiandmore.repository.WishlistItemRepository;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 public class WishlistService {
@@ -23,10 +22,11 @@ public class WishlistService {
     private final ProductService productService;
 
     public WishlistService(
-            WishlistItemRepository wishlistItemRepository,
-            CustomerRepository customerRepository,
-            ProductRepository productRepository,
-            ProductService productService) {
+        WishlistItemRepository wishlistItemRepository,
+        CustomerRepository customerRepository,
+        ProductRepository productRepository,
+        ProductService productService
+    ) {
         this.wishlistItemRepository = wishlistItemRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
@@ -35,34 +35,27 @@ public class WishlistService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getWishlist(Long customerId) {
-        return wishlistItemRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
-                .stream()
-                .map(item -> productService.getProductById(item.getProduct().getId()))
-                .toList();
+        return wishlistItemRepository
+            .findByCustomerIdOrderByCreatedAtDesc(customerId)
+            .stream()
+            .map(item -> productService.getProductById(item.getProduct().getId()))
+            .toList();
     }
 
     @Transactional
     public List<ProductResponse> add(Long customerId, Long productId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ApiException(
-                        "CUSTOMER_NOT_FOUND",
-                        "Customer account not found",
-                        HttpStatus.NOT_FOUND
-                ));
+        Customer customer = customerRepository
+            .findById(customerId)
+            .orElseThrow(() ->
+                new ApiException("CUSTOMER_NOT_FOUND", "Customer account not found", HttpStatus.NOT_FOUND)
+            );
 
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ApiException(
-                        "PRODUCT_NOT_FOUND",
-                        "Product not found",
-                        HttpStatus.NOT_FOUND
-                ));
+        Product product = productRepository
+            .findById(productId)
+            .orElseThrow(() -> new ApiException("PRODUCT_NOT_FOUND", "Product not found", HttpStatus.NOT_FOUND));
 
         if (!Boolean.TRUE.equals(product.getActive())) {
-            throw new ApiException(
-                    "PRODUCT_UNAVAILABLE",
-                    "This product is no longer available",
-                    HttpStatus.CONFLICT
-            );
+            throw new ApiException("PRODUCT_UNAVAILABLE", "This product is no longer available", HttpStatus.CONFLICT);
         }
 
         if (!wishlistItemRepository.existsByCustomerIdAndProductId(customerId, productId)) {
@@ -77,8 +70,9 @@ public class WishlistService {
 
     @Transactional
     public List<ProductResponse> remove(Long customerId, Long productId) {
-        wishlistItemRepository.findByCustomerIdAndProductId(customerId, productId)
-                .ifPresent(wishlistItemRepository::delete);
+        wishlistItemRepository
+            .findByCustomerIdAndProductId(customerId, productId)
+            .ifPresent(wishlistItemRepository::delete);
         return getWishlist(customerId);
     }
 }

@@ -1,7 +1,7 @@
 package com.mittiandmore.entity;
 
-import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "cart_items")
@@ -25,8 +25,7 @@ public class CartItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    public CartItem() {
-    }
+    public CartItem() {}
 
     public Long getId() {
         return id;
@@ -36,8 +35,13 @@ public class CartItem {
         return quantity;
     }
 
-    public int getPackSize() { return packSize; }
-    public void setPackSize(int packSize) { this.packSize = packSize; }
+    public int getPackSize() {
+        return packSize;
+    }
+
+    public void setPackSize(int packSize) {
+        this.packSize = packSize;
+    }
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;

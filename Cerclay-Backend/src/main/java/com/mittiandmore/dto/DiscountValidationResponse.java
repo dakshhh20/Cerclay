@@ -3,6 +3,7 @@ package com.mittiandmore.dto;
 import java.math.BigDecimal;
 
 public class DiscountValidationResponse {
+
     private String code;
     private BigDecimal discountAmount;
     private BigDecimal subtotal;
@@ -15,7 +16,15 @@ public class DiscountValidationResponse {
         this.subtotal = subtotal;
     }
 
-    public String getCode() { return code; }
-    public BigDecimal getDiscountAmount() { return discountAmount; }
-    public BigDecimal getSubtotal() { return subtotal; }
+    public String getCode() {
+        return code;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
 }

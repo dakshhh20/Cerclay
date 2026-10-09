@@ -1,5 +1,124 @@
 package com.mittiandmore.dto;
-import java.math.BigDecimal; import java.time.LocalDateTime;
-public class RefundResponse { private Long id, orderId, returnRequestId; private String razorpayRefundId,cashfreeRefundId,status,currency,reason,receipt,failureReason; private BigDecimal amount; private LocalDateTime createdAt,updatedAt,processedAt;
- public Long getId(){return id;} public void setId(Long v){id=v;} public Long getOrderId(){return orderId;} public void setOrderId(Long v){orderId=v;} public Long getReturnRequestId(){return returnRequestId;} public void setReturnRequestId(Long v){returnRequestId=v;} public String getRazorpayRefundId(){return razorpayRefundId;} public void setRazorpayRefundId(String v){razorpayRefundId=v;} public String getCashfreeRefundId(){return cashfreeRefundId;} public void setCashfreeRefundId(String v){cashfreeRefundId=v;} public String getStatus(){return status;} public void setStatus(String v){status=v;} public String getCurrency(){return currency;} public void setCurrency(String v){currency=v;} public String getReason(){return reason;} public void setReason(String v){reason=v;} public String getReceipt(){return receipt;} public void setReceipt(String v){receipt=v;} public String getFailureReason(){return failureReason;} public void setFailureReason(String v){failureReason=v;} public BigDecimal getAmount(){return amount;} public void setAmount(BigDecimal v){amount=v;} public LocalDateTime getCreatedAt(){return createdAt;} public void setCreatedAt(LocalDateTime v){createdAt=v;} public LocalDateTime getUpdatedAt(){return updatedAt;} public void setUpdatedAt(LocalDateTime v){updatedAt=v;} public LocalDateTime getProcessedAt(){return processedAt;} public void setProcessedAt(LocalDateTime v){processedAt=v;}
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class RefundResponse {
+
+    private Long id, orderId, returnRequestId;
+    private String razorpayRefundId, cashfreeRefundId, status, currency, reason, receipt, failureReason;
+    private BigDecimal amount;
+    private LocalDateTime createdAt, updatedAt, processedAt;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long v) {
+        id = v;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long v) {
+        orderId = v;
+    }
+
+    public Long getReturnRequestId() {
+        return returnRequestId;
+    }
+
+    public void setReturnRequestId(Long v) {
+        returnRequestId = v;
+    }
+
+    public String getRazorpayRefundId() {
+        return razorpayRefundId;
+    }
+
+    public void setRazorpayRefundId(String v) {
+        razorpayRefundId = v;
+    }
+
+    public String getCashfreeRefundId() {
+        return cashfreeRefundId;
+    }
+
+    public void setCashfreeRefundId(String v) {
+        cashfreeRefundId = v;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String v) {
+        status = v;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String v) {
+        currency = v;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String v) {
+        reason = v;
+    }
+
+    public String getReceipt() {
+        return receipt;
+    }
+
+    public void setReceipt(String v) {
+        receipt = v;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public void setFailureReason(String v) {
+        failureReason = v;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal v) {
+        amount = v;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime v) {
+        createdAt = v;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime v) {
+        updatedAt = v;
+    }
+
+    public LocalDateTime getProcessedAt() {
+        return processedAt;
+    }
+
+    public void setProcessedAt(LocalDateTime v) {
+        processedAt = v;
+    }
 }

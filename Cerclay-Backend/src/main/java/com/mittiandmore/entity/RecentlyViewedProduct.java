@@ -1,23 +1,19 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "recently_viewed_products",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_recently_viewed_customer_product",
-                        columnNames = {"customer_id", "product_id"}
-                )
-        },
-        indexes = {
-                @Index(name = "idx_recently_viewed_customer", columnList = "customer_id"),
-                @Index(name = "idx_recently_viewed_customer_last_viewed", columnList = "customer_id,last_viewed_at"),
-                @Index(name = "idx_recently_viewed_product", columnList = "product_id")
-        }
+    name = "recently_viewed_products",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_recently_viewed_customer_product", columnNames = { "customer_id", "product_id" }),
+    },
+    indexes = {
+        @Index(name = "idx_recently_viewed_customer", columnList = "customer_id"),
+        @Index(name = "idx_recently_viewed_customer_last_viewed", columnList = "customer_id,last_viewed_at"),
+        @Index(name = "idx_recently_viewed_product", columnList = "product_id"),
+    }
 )
 public class RecentlyViewedProduct {
 
@@ -36,8 +32,7 @@ public class RecentlyViewedProduct {
     @Column(name = "last_viewed_at", nullable = false)
     private LocalDateTime lastViewedAt;
 
-    public RecentlyViewedProduct() {
-    }
+    public RecentlyViewedProduct() {}
 
     @PrePersist
     protected void onCreate() {

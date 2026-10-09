@@ -45,35 +45,47 @@ export function AuthProvider({ children }) {
     refreshAuth().catch(() => setStatus("anonymous"));
   }, [refreshAuth]);
 
-  const completeLogin = useCallback(async (data) => {
-    const nextCustomer = data?.customer || data?.user || data;
-    setCustomer(nextCustomer);
-    setStatus("authenticated");
+  const completeLogin = useCallback(
+    async (data) => {
+      const nextCustomer = data?.customer || data?.user || data;
+      setCustomer(nextCustomer);
+      setStatus("authenticated");
 
-    await mergeGuestCart(guestId).catch(() => {});
-    await refreshCart().catch(() => {});
+      await mergeGuestCart(guestId).catch(() => {});
+      await refreshCart().catch(() => {});
 
-    // Carry anonymous recently viewed history into the signed-in customer account.
-    const localRecentlyViewed = getLocalRecentlyViewedIds();
-    for (const productId of localRecentlyViewed) {
-      await recordRecentlyViewedProduct(productId).catch(() => {});
-    }
-    if (localRecentlyViewed.length) clearLocalRecentlyViewed();
+      // Carry anonymous recently viewed history into the signed-in customer account.
+      const localRecentlyViewed = getLocalRecentlyViewedIds();
+      for (const productId of localRecentlyViewed) {
+        await recordRecentlyViewedProduct(productId).catch(() => {});
+      }
+      if (localRecentlyViewed.length) clearLocalRecentlyViewed();
 
-    return nextCustomer;
-  }, [guestId, refreshCart]);
+      return nextCustomer;
+    },
+    [guestId, refreshCart]
+  );
 
-  const login = useCallback(async (email, password) => {
-    return completeLogin(await loginCustomer(email, password));
-  }, [completeLogin]);
+  const login = useCallback(
+    async (email, password) => {
+      return completeLogin(await loginCustomer(email, password));
+    },
+    [completeLogin]
+  );
 
-  const loginWithMobileOtp = useCallback(async (phone, otp, name = "", email = "") => {
-    return completeLogin(await verifyMobileLoginOtp(phone, otp, name, email));
-  }, [completeLogin]);
+  const loginWithMobileOtp = useCallback(
+    async (phone, otp, name = "", email = "") => {
+      return completeLogin(await verifyMobileLoginOtp(phone, otp, name, email));
+    },
+    [completeLogin]
+  );
 
-  const loginWithGoogle = useCallback(async (credential) => {
-    return completeLogin(await loginWithGoogleCredential(credential));
-  }, [completeLogin]);
+  const loginWithGoogle = useCallback(
+    async (credential) => {
+      return completeLogin(await loginWithGoogleCredential(credential));
+    },
+    [completeLogin]
+  );
 
   const register = useCallback(async (payload) => {
     const data = await registerCustomer(payload);
@@ -84,15 +96,20 @@ export function AuthProvider({ children }) {
 
   const sendMobileOtp = useCallback((phone) => sendMobileLoginOtp(phone), []);
   const sendPasswordResetOtp = useCallback((phone) => requestPasswordResetOtp(phone), []);
-  const resetPassword = useCallback((phone, otp, newPassword) =>
-    resetPasswordWithOtp(phone, otp, newPassword), []);
+  const resetPassword = useCallback(
+    (phone, otp, newPassword) => resetPasswordWithOtp(phone, otp, newPassword),
+    []
+  );
 
-  const updateCustomer = useCallback(async (payload) => {
-    if (!customer?.id) throw new Error("Customer account is not available.");
-    const updated = await updateCustomerApi(customer.id, payload);
-    setCustomer(updated);
-    return updated;
-  }, [customer?.id]);
+  const updateCustomer = useCallback(
+    async (payload) => {
+      if (!customer?.id) throw new Error("Customer account is not available.");
+      const updated = await updateCustomerApi(customer.id, payload);
+      setCustomer(updated);
+      return updated;
+    },
+    [customer?.id]
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -104,34 +121,37 @@ export function AuthProvider({ children }) {
     }
   }, [refreshCart]);
 
-  const value = useMemo(() => ({
-    customer,
-    status,
-    isAuthenticated: Boolean(customer),
-    refreshAuth,
-    login,
-    loginWithMobileOtp,
-    loginWithGoogle,
-    register,
-    sendMobileOtp,
-    sendPasswordResetOtp,
-    resetPassword,
-    updateCustomer,
-    logout,
-  }), [
-    customer,
-    status,
-    refreshAuth,
-    login,
-    loginWithMobileOtp,
-    loginWithGoogle,
-    register,
-    sendMobileOtp,
-    sendPasswordResetOtp,
-    resetPassword,
-    updateCustomer,
-    logout,
-  ]);
+  const value = useMemo(
+    () => ({
+      customer,
+      status,
+      isAuthenticated: Boolean(customer),
+      refreshAuth,
+      login,
+      loginWithMobileOtp,
+      loginWithGoogle,
+      register,
+      sendMobileOtp,
+      sendPasswordResetOtp,
+      resetPassword,
+      updateCustomer,
+      logout,
+    }),
+    [
+      customer,
+      status,
+      refreshAuth,
+      login,
+      loginWithMobileOtp,
+      loginWithGoogle,
+      register,
+      sendMobileOtp,
+      sendPasswordResetOtp,
+      resetPassword,
+      updateCustomer,
+      logout,
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

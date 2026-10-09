@@ -9,8 +9,19 @@ public class InventoryAdjustmentRequest {
 
     private String reason;
 
-    public Integer getNewStock() { return newStock; }
-    public void setNewStock(Integer newStock) { this.newStock = newStock; }
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
+    public Integer getNewStock() {
+        return newStock;
+    }
+
+    public void setNewStock(Integer newStock) {
+        this.newStock = newStock;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
 }

@@ -1,17 +1,16 @@
 package com.mittiandmore.service;
 
-import com.mittiandmore.dto.InventoryAdjustmentResponse;
 import com.mittiandmore.dto.InventoryAdjustmentRequest;
+import com.mittiandmore.dto.InventoryAdjustmentResponse;
 import com.mittiandmore.entity.InventoryAdjustment;
 import com.mittiandmore.entity.Product;
 import com.mittiandmore.exception.ApiException;
 import com.mittiandmore.repository.InventoryAdjustmentRepository;
 import com.mittiandmore.repository.ProductRepository;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 public class InventoryService {
@@ -19,16 +18,16 @@ public class InventoryService {
     private final ProductRepository productRepository;
     private final InventoryAdjustmentRepository adjustmentRepository;
 
-    public InventoryService(ProductRepository productRepository,
-                            InventoryAdjustmentRepository adjustmentRepository) {
+    public InventoryService(ProductRepository productRepository, InventoryAdjustmentRepository adjustmentRepository) {
         this.productRepository = productRepository;
         this.adjustmentRepository = adjustmentRepository;
     }
 
     @Transactional
     public Product adjustStock(Long productId, InventoryAdjustmentRequest request, String actor) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ApiException("PRODUCT_NOT_FOUND", "Product not found", HttpStatus.NOT_FOUND));
+        Product product = productRepository
+            .findById(productId)
+            .orElseThrow(() -> new ApiException("PRODUCT_NOT_FOUND", "Product not found", HttpStatus.NOT_FOUND));
 
         int oldStock = product.getStock() == null ? 0 : product.getStock();
         int newStock = request.getNewStock();
@@ -40,8 +39,7 @@ public class InventoryService {
         product.setStock(newStock);
         Product saved = productRepository.save(product);
 
-        recordStockChange(saved, oldStock, newStock, "ADMIN_ADJUSTMENT",
-                request.getReason(), actor);
+        recordStockChange(saved, oldStock, newStock, "ADMIN_ADJUSTMENT", request.getReason(), actor);
 
         return saved;
     }
@@ -52,36 +50,66 @@ public class InventoryService {
             return;
         }
 
-        Product product = productRepository.findByIdForUpdate(productId)
-                .orElseThrow(() -> new ApiException(
-                        "PRODUCT_NOT_FOUND",
-                        "Product not found while restoring cancelled-order stock",
-                        HttpStatus.CONFLICT));
+        Product product = productRepository
+            .findByIdForUpdate(productId)
+            .orElseThrow(() ->
+                new ApiException(
+                    "PRODUCT_NOT_FOUND",
+                    "Product not found while restoring cancelled-order stock",
+                    HttpStatus.CONFLICT
+                )
+            );
 
         int oldStock = product.getStock() == null ? 0 : product.getStock();
         int newStock = oldStock + quantity;
         product.setStock(newStock);
         Product saved = productRepository.save(product);
 
-        recordStockChange(saved, oldStock, newStock, "ORDER_CANCELLED",
-                "Stock restored for cancelled order #" + orderId, "SYSTEM");
+        recordStockChange(
+            saved,
+            oldStock,
+            newStock,
+            "ORDER_CANCELLED",
+            "Stock restored for cancelled order #" + orderId,
+            "SYSTEM"
+        );
     }
 
     @Transactional
     public void restoreStockForReturn(Long productId, int quantity, Long orderId) {
         if (quantity <= 0) return;
-        Product product = productRepository.findByIdForUpdate(productId)
-                .orElseThrow(() -> new ApiException("PRODUCT_NOT_FOUND", "Product not found while restoring returned-order stock", HttpStatus.CONFLICT));
+        Product product = productRepository
+            .findByIdForUpdate(productId)
+            .orElseThrow(() ->
+                new ApiException(
+                    "PRODUCT_NOT_FOUND",
+                    "Product not found while restoring returned-order stock",
+                    HttpStatus.CONFLICT
+                )
+            );
         int oldStock = product.getStock() == null ? 0 : product.getStock();
         int newStock = oldStock + quantity;
         product.setStock(newStock);
         Product saved = productRepository.save(product);
-        recordStockChange(saved, oldStock, newStock, "RETURN_RECEIVED", "Stock restored for returned order #" + orderId, "SYSTEM");
+        recordStockChange(
+            saved,
+            oldStock,
+            newStock,
+            "RETURN_RECEIVED",
+            "Stock restored for returned order #" + orderId,
+            "SYSTEM"
+        );
     }
 
     @Transactional
-    public void recordStockChange(Product product, int previousStock, int newStock,
-                                  String changeType, String reason, String actor) {
+    public void recordStockChange(
+        Product product,
+        int previousStock,
+        int newStock,
+        String changeType,
+        String reason,
+        String actor
+    ) {
         if (previousStock == newStock) return;
 
         InventoryAdjustment adjustment = new InventoryAdjustment();
@@ -97,14 +125,16 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public List<InventoryAdjustmentResponse> recent() {
-        return adjustmentRepository.findTop100ByOrderByCreatedAtDesc()
-                .stream().map(this::toResponse).toList();
+        return adjustmentRepository.findTop100ByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public List<InventoryAdjustmentResponse> forProduct(Long productId) {
-        return adjustmentRepository.findTop100ByProductIdOrderByCreatedAtDesc(productId)
-                .stream().map(this::toResponse).toList();
+        return adjustmentRepository
+            .findTop100ByProductIdOrderByCreatedAtDesc(productId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
     }
 
     private InventoryAdjustmentResponse toResponse(InventoryAdjustment a) {

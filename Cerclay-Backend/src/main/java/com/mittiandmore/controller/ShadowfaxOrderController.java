@@ -1,10 +1,10 @@
 package com.mittiandmore.controller;
 
-import com.mittiandmore.dto.ShipmentResponse;
 import com.mittiandmore.dto.ShadowfaxAwbRequest;
-import jakarta.validation.Valid;
+import com.mittiandmore.dto.ShipmentResponse;
 import com.mittiandmore.entity.Shipment;
 import com.mittiandmore.service.ShadowfaxOrderService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +14,7 @@ public class ShadowfaxOrderController {
 
     private final ShadowfaxOrderService shadowfaxOrderService;
 
-    public ShadowfaxOrderController(
-            ShadowfaxOrderService shadowfaxOrderService
-    ) {
+    public ShadowfaxOrderController(ShadowfaxOrderService shadowfaxOrderService) {
         this.shadowfaxOrderService = shadowfaxOrderService;
     }
 
@@ -28,11 +26,8 @@ public class ShadowfaxOrderController {
      * triggers this endpoint.
      */
     @PostMapping("/orders/{orderId}")
-    public ResponseEntity<ShipmentResponse> createShipmentForOrder(
-            @PathVariable Long orderId
-    ) {
-        Shipment shipment =
-                shadowfaxOrderService.createShipmentForOrder(orderId);
+    public ResponseEntity<ShipmentResponse> createShipmentForOrder(@PathVariable Long orderId) {
+        Shipment shipment = shadowfaxOrderService.createShipmentForOrder(orderId);
 
         return ResponseEntity.ok(toResponse(shipment));
     }
@@ -45,13 +40,10 @@ public class ShadowfaxOrderController {
      */
     @PostMapping("/orders/{orderId}/awb")
     public ResponseEntity<ShipmentResponse> assignManualAwb(
-            @PathVariable Long orderId,
-            @Valid @RequestBody ShadowfaxAwbRequest request
+        @PathVariable Long orderId,
+        @Valid @RequestBody ShadowfaxAwbRequest request
     ) {
-        Shipment shipment = shadowfaxOrderService.assignManualShadowfaxAwbAndSync(
-                orderId,
-                request.getAwb()
-        );
+        Shipment shipment = shadowfaxOrderService.assignManualShadowfaxAwbAndSync(orderId, request.getAwb());
 
         return ResponseEntity.ok(toResponse(shipment));
     }

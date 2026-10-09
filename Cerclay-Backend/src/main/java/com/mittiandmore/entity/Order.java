@@ -1,7 +1,6 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,14 +8,14 @@ import java.util.List;
 
 @Entity
 @Table(
-        name = "orders",
-        indexes = {
-                @Index(name = "idx_orders_customer", columnList = "customer_id"),
-                @Index(name = "idx_orders_payment_method", columnList = "payment_method"),
-                @Index(name = "idx_orders_payment_status", columnList = "payment_status"),
-                @Index(name = "idx_orders_order_status", columnList = "order_status"),
-                @Index(name = "idx_orders_created_at", columnList = "created_at")
-        }
+    name = "orders",
+    indexes = {
+        @Index(name = "idx_orders_customer", columnList = "customer_id"),
+        @Index(name = "idx_orders_payment_method", columnList = "payment_method"),
+        @Index(name = "idx_orders_payment_status", columnList = "payment_status"),
+        @Index(name = "idx_orders_order_status", columnList = "order_status"),
+        @Index(name = "idx_orders_created_at", columnList = "created_at"),
+    }
 )
 public class Order {
 
@@ -100,15 +99,10 @@ public class Order {
     @Column(name = "cancelled_by", length = 50)
     private String cancelledBy;
 
-    @OneToMany(
-            mappedBy = "order",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
-    public Order() {
-    }
+    public Order() {}
 
     @PrePersist
     protected void onCreate() {

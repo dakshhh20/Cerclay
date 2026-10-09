@@ -1,5 +1,6 @@
 package com.mittiandmore.controller;
 
+import com.mittiandmore.config.DualClientSecurityContextRepository;
 import com.mittiandmore.dto.CustomerResponse;
 import com.mittiandmore.dto.CustomerUpdateRequest;
 import com.mittiandmore.entity.Customer;
@@ -8,6 +9,8 @@ import com.mittiandmore.service.CustomerUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,12 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import com.mittiandmore.config.DualClientSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -30,15 +29,11 @@ public class CustomerController {
     private final CustomerUserDetailsService customerUserDetailsService;
 
     private final SecurityContextRepository securityContextRepository =
-            new DualClientSecurityContextRepository().customerRepository();
+        new DualClientSecurityContextRepository().customerRepository();
 
-    public CustomerController(
-            CustomerService customerService,
-            CustomerUserDetailsService customerUserDetailsService) {
-
+    public CustomerController(CustomerService customerService, CustomerUserDetailsService customerUserDetailsService) {
         this.customerService = customerService;
-        this.customerUserDetailsService =
-                customerUserDetailsService;
+        this.customerUserDetailsService = customerUserDetailsService;
     }
 
     // ADMIN ONLY
@@ -49,38 +44,22 @@ public class CustomerController {
 
     // CUSTOMER: get own profile
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCustomerById(
-            @PathVariable Long id,
-            Authentication authentication) {
-
-        Customer customer =
-                customerService.getCustomerById(id);
+    public ResponseEntity<?> getCustomerById(@PathVariable Long id, Authentication authentication) {
+        Customer customer = customerService.getCustomerById(id);
 
         if (customer == null) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("Customer not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer not found");
         }
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Authentication required");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
         }
 
-        if (!customer.getEmail()
-                .equals(authentication.getName())) {
-
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body("You are not allowed to access this customer");
+        if (!customer.getEmail().equals(authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to access this customer");
         }
 
-        return ResponseEntity.ok(
-                customerService.toResponse(customer)
-        );
+        return ResponseEntity.ok(customerService.toResponse(customer));
     }
 
     // Direct customer creation is disabled.
@@ -89,45 +68,29 @@ public class CustomerController {
     // CUSTOMER: update own profile
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCustomer(
-            @PathVariable Long id,
-            @Valid @RequestBody CustomerUpdateRequest request,
-            Authentication authentication,
-            HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
-
-        Customer existingCustomer =
-                customerService.getCustomerById(id);
+        @PathVariable Long id,
+        @Valid @RequestBody CustomerUpdateRequest request,
+        Authentication authentication,
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse
+    ) {
+        Customer existingCustomer = customerService.getCustomerById(id);
 
         if (existingCustomer == null) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("Customer not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer not found");
         }
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Authentication required");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
         }
 
-        if (!existingCustomer.getEmail()
-                .equals(authentication.getName())) {
-
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body("You are not allowed to modify this customer");
+        if (!existingCustomer.getEmail().equals(authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to modify this customer");
         }
 
-        boolean emailChanged =
-                !Objects.equals(
-                        existingCustomer.getEmail(),
-                        request.getEmail()
-                );
+        boolean emailChanged = !Objects.equals(existingCustomer.getEmail(), request.getEmail());
 
-        Customer updatedCustomer =
-                customerService.updateCustomer(id, request);
+        Customer updatedCustomer = customerService.updateCustomer(id, request);
 
         /*
          * If the email changed, the authenticated username
@@ -135,37 +98,23 @@ public class CustomerController {
          * the customer's email as the session username.
          */
         if (emailChanged) {
+            UserDetails userDetails = customerUserDetailsService.loadUserByUsername(updatedCustomer.getEmail());
 
-            UserDetails userDetails =
-                    customerUserDetailsService.loadUserByUsername(
-                            updatedCustomer.getEmail()
-                    );
-
-            Authentication newAuthentication =
-                    UsernamePasswordAuthenticationToken.authenticated(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-
-            SecurityContext context =
-                    SecurityContextHolder.createEmptyContext();
-
-            context.setAuthentication(
-                    newAuthentication
+            Authentication newAuthentication = UsernamePasswordAuthenticationToken.authenticated(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
             );
+
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+
+            context.setAuthentication(newAuthentication);
 
             SecurityContextHolder.setContext(context);
 
-            securityContextRepository.saveContext(
-                    context,
-                    httpRequest,
-                    httpResponse
-            );
+            securityContextRepository.saveContext(context, httpRequest, httpResponse);
         }
 
-        return ResponseEntity.ok(
-                customerService.toResponse(updatedCustomer)
-        );
+        return ResponseEntity.ok(customerService.toResponse(updatedCustomer));
     }
 }

@@ -20,10 +20,8 @@ public class DualClientSecurityContextRepository implements SecurityContextRepos
     public static final String ADMIN_HEADER = "X-Client-Type";
     public static final String ADMIN_VALUE = "admin";
 
-    private final HttpSessionSecurityContextRepository customerRepository =
-            new HttpSessionSecurityContextRepository();
-    private final HttpSessionSecurityContextRepository adminRepository =
-            new HttpSessionSecurityContextRepository();
+    private final HttpSessionSecurityContextRepository customerRepository = new HttpSessionSecurityContextRepository();
+    private final HttpSessionSecurityContextRepository adminRepository = new HttpSessionSecurityContextRepository();
 
     public DualClientSecurityContextRepository() {
         customerRepository.setSpringSecurityContextKey("CERCLAY_CUSTOMER_SECURITY_CONTEXT");
@@ -31,9 +29,7 @@ public class DualClientSecurityContextRepository implements SecurityContextRepos
     }
 
     private SecurityContextRepository repository(HttpServletRequest request) {
-        return ADMIN_VALUE.equalsIgnoreCase(request.getHeader(ADMIN_HEADER))
-                ? adminRepository
-                : customerRepository;
+        return ADMIN_VALUE.equalsIgnoreCase(request.getHeader(ADMIN_HEADER)) ? adminRepository : customerRepository;
     }
 
     @Override

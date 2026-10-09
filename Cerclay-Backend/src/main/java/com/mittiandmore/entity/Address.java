@@ -41,8 +41,7 @@ public class Address {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    public Address() {
-    }
+    public Address() {}
 
     public Long getId() {
         return id;

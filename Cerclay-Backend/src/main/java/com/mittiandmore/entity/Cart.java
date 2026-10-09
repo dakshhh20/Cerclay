@@ -2,7 +2,6 @@ package com.mittiandmore.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,15 +20,10 @@ public class Cart {
     @JsonIgnore
     private Customer customer;
 
-    @OneToMany(
-            mappedBy = "cart",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items = new ArrayList<>();
 
-    public Cart() {
-    }
+    public Cart() {}
 
     public Long getId() {
         return id;

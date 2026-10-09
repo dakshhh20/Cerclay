@@ -11,18 +11,23 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/admin/products/{productId}/images")
 public class AdminProductImageUploadController {
+
     private final ProductImageStorageService storageService;
     private final ProductImageService imageService;
 
-    public AdminProductImageUploadController(ProductImageStorageService storageService, ProductImageService imageService) {
+    public AdminProductImageUploadController(
+        ProductImageStorageService storageService,
+        ProductImageService imageService
+    ) {
         this.storageService = storageService;
         this.imageService = imageService;
     }
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<ProductImageResponse> upload(
-            @PathVariable Long productId,
-            @RequestPart("file") MultipartFile file) {
+        @PathVariable Long productId,
+        @RequestPart("file") MultipartFile file
+    ) {
         String url = storageService.store(file);
         ProductImageRequest request = new ProductImageRequest();
         request.setImageUrl(url);

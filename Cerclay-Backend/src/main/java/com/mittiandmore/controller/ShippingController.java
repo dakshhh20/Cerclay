@@ -18,8 +18,7 @@ public class ShippingController {
     }
 
     @PostMapping("/quote")
-    public ResponseEntity<ShippingQuoteResponse> quote(
-            @Valid @RequestBody ShippingQuoteRequest request) {
+    public ResponseEntity<ShippingQuoteResponse> quote(@Valid @RequestBody ShippingQuoteRequest request) {
         return ResponseEntity.ok(shippingService.calculateQuote(request));
     }
 }

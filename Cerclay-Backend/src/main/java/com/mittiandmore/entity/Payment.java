@@ -1,27 +1,17 @@
 package com.mittiandmore.entity;
 
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "payments",
-        indexes = {
-                @Index(
-                        name = "idx_payments_order",
-                        columnList = "order_id"
-                ),
-                @Index(
-                        name = "idx_payments_status",
-                        columnList = "payment_status"
-                ),
-                @Index(
-                        name = "idx_payments_created_at",
-                        columnList = "created_at"
-                )
-        }
+    name = "payments",
+    indexes = {
+        @Index(name = "idx_payments_order", columnList = "order_id"),
+        @Index(name = "idx_payments_status", columnList = "payment_status"),
+        @Index(name = "idx_payments_created_at", columnList = "created_at"),
+    }
 )
 public class Payment {
 
@@ -30,26 +20,13 @@ public class Payment {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "order_id",
-            nullable = false,
-            unique = true
-    )
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
-    @Column(
-            name = "razorpay_order_id",
-            nullable = false,
-            unique = true,
-            length = 100
-    )
+    @Column(name = "razorpay_order_id", nullable = false, unique = true, length = 100)
     private String razorpayOrderId;
 
-    @Column(
-            name = "razorpay_payment_id",
-            unique = true,
-            length = 100
-    )
+    @Column(name = "razorpay_payment_id", unique = true, length = 100)
     private String razorpayPaymentId;
 
     @Column(name = "cashfree_order_id", unique = true, length = 100)
@@ -61,51 +38,28 @@ public class Payment {
     @Column(name = "cashfree_payment_id", unique = true, length = 100)
     private String cashfreePaymentId;
 
-    @Column(
-            nullable = false,
-            precision = 10,
-            scale = 2
-    )
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(
-            nullable = false,
-            length = 10
-    )
+    @Column(nullable = false, length = 10)
     private String currency = "INR";
 
-    @Column(
-            name = "payment_status",
-            nullable = false,
-            length = 30
-    )
+    @Column(name = "payment_status", nullable = false, length = 30)
     private String paymentStatus = "CREATED";
 
-    @Column(
-            name = "payment_method",
-            length = 50
-    )
+    @Column(name = "payment_method", length = 50)
     private String paymentMethod;
 
-    @Column(
-            name = "created_at",
-            nullable = false,
-            updatable = false
-    )
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(
-            name = "updated_at",
-            nullable = false
-    )
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Payment() {
-    }
+    public Payment() {}
 
     @PrePersist
     protected void onCreate() {
-
         LocalDateTime now = LocalDateTime.now();
 
         if (createdAt == null) {
@@ -117,7 +71,6 @@ public class Payment {
 
     @PreUpdate
     protected void onUpdate() {
-
         updatedAt = LocalDateTime.now();
     }
 
@@ -153,12 +106,29 @@ public class Payment {
         this.razorpayPaymentId = razorpayPaymentId;
     }
 
-    public String getCashfreeOrderId() { return cashfreeOrderId; }
-    public void setCashfreeOrderId(String cashfreeOrderId) { this.cashfreeOrderId = cashfreeOrderId; }
-    public String getCashfreePaymentSessionId() { return cashfreePaymentSessionId; }
-    public void setCashfreePaymentSessionId(String cashfreePaymentSessionId) { this.cashfreePaymentSessionId = cashfreePaymentSessionId; }
-    public String getCashfreePaymentId() { return cashfreePaymentId; }
-    public void setCashfreePaymentId(String cashfreePaymentId) { this.cashfreePaymentId = cashfreePaymentId; }
+    public String getCashfreeOrderId() {
+        return cashfreeOrderId;
+    }
+
+    public void setCashfreeOrderId(String cashfreeOrderId) {
+        this.cashfreeOrderId = cashfreeOrderId;
+    }
+
+    public String getCashfreePaymentSessionId() {
+        return cashfreePaymentSessionId;
+    }
+
+    public void setCashfreePaymentSessionId(String cashfreePaymentSessionId) {
+        this.cashfreePaymentSessionId = cashfreePaymentSessionId;
+    }
+
+    public String getCashfreePaymentId() {
+        return cashfreePaymentId;
+    }
+
+    public void setCashfreePaymentId(String cashfreePaymentId) {
+        this.cashfreePaymentId = cashfreePaymentId;
+    }
 
     public BigDecimal getAmount() {
         return amount;

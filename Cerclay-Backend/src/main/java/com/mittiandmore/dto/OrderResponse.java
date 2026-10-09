@@ -40,8 +40,7 @@ public class OrderResponse {
 
     private List<OrderItemResponse> items;
 
-    public OrderResponse() {
-    }
+    public OrderResponse() {}
 
     public Long getId() {
         return id;
